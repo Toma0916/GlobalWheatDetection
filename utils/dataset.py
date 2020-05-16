@@ -45,6 +45,10 @@ from albumentations.core.transforms_interface import DualTransform
 from functions import convert_dataframe
 
 
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
+
 class DatasetMixin(Dataset):
 
     def __init__(self, transform=None):
@@ -145,5 +149,15 @@ if __name__ == '__main__':
     dataframe = convert_dataframe(dataframe)
 
     dataset = GWDDataset(dataframe, train_image_dir)
+    indices = torch.randperm(len(dataset)).tolist()
+    
+    data_loader = DataLoader(
+        dataset,
+        batch_size=16,
+        shuffle=False,
+        num_workers=4,
+        collate_fn=collate_fn
+    )
+
     import pdb; pdb.set_trace()
     
