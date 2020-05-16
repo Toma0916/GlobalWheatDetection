@@ -2,7 +2,6 @@ import argparse
 import os
 from pathlib import Path
 import random
-import re
 import sys
 import gc
 import six
@@ -33,12 +32,6 @@ from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-from torchvision.models.detection import FasterRCNN
-from torchvision.models.detection.rpn import AnchorGenerator
-
-
 # --- models ---
 from sklearn import preprocessing
 from sklearn.model_selection import KFold, train_test_split
@@ -48,15 +41,33 @@ import sklearn.metrics
 # --- albumentations ---
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
+from albumentations.pytorch.transforms import ToTensorV2
 
 
+class Transform:
 
+    def __init__(self, config):
 
+        self.blur_p =  config["blur_p"]  # blutをかける確率
+        self.brightness_contrast_p =  config["brightness_contrast_p"]  # brightness contrastを調整する確率
 
+    def __call__(self, example):
 
-def get_optimizer(config, parameters):
+        image, target, image_id = example
 
-    if config['optimizer_name'] == 'adam':
-        optimizer = torch.optim.Adam(parameters, lr=config['initial_lr'], betas=(config['b1'], config['b2']))
-    
-    return optimizer
+        sample = {
+            'image': image,
+            'bboxes': target['boxes'],
+            'labels': target['labels']
+        }
+
+        albumentation_transforms = A.Compose([
+            ToTensorV2(p=1.0)  # convert numpy image to tensor
+            ], 
+            bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
+        )
+        
+        sample = albumentation_transforms(**sample)
+        image = sample['image']
+        target['boxes'] =torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
+        return image, target, image_id

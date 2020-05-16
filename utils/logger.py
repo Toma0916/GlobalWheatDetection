@@ -50,13 +50,22 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 
+class Averager:
+    def __init__(self):
+        self.current_total = 0.0
+        self.iterations = 0.0
 
+    def send(self, value):
+        self.current_total += value
+        self.iterations += 1
 
+    @property
+    def value(self):
+        if self.iterations == 0:
+            return 0
+        else:
+            return 1.0 * self.current_total / self.iterations
 
-
-def get_optimizer(config, parameters):
-
-    if config['optimizer_name'] == 'adam':
-        optimizer = torch.optim.Adam(parameters, lr=config['initial_lr'], betas=(config['b1'], config['b2']))
-    
-    return optimizer
+    def reset(self):
+        self.current_total = 0.0
+        self.iterations = 0.0

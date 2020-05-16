@@ -52,10 +52,12 @@ from albumentations.core.transforms_interface import DualTransform
 # --- my modules ---
 from model import get_model
 from optimizer import get_optimizer
+from scheduler import get_scheduler
 
 from utils.dataset import GWDDataset, collate_fn
+from utils.transform import Transform
 from utils.functions import convert_dataframe
-
+from utils.logger import Averager
 
 
 if __name__ == '__main__':
@@ -75,12 +77,13 @@ if __name__ == '__main__':
     parser.add_argument('--model_not_pretrained', action='store_false')  
 
     # --- train ---
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--optimizer_name', type=str, default='adam')
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--b1', type=float, default=0.5)
     parser.add_argument('--b2', type=float, default=0.999)
+    parser.add_argument('--schedular_name', type=str, default='')
 
     # --- argument ---
     parser.add_argument('--blur_p', type=float, default=1.0)
@@ -110,9 +113,11 @@ if __name__ == '__main__':
         model_pretrained = args.model_not_pretrained
         batch_size = args.batch_size
         epochs = args.epochs
+        optimizer_name = args.optimizer_name
         initial_lr = args.lr
         b1 = args.b1
         b2 = args.b2
+        schedular_name = args.schedular_name
         blur_p = args.blur_p
         brightness_contrast_p = args.brightness_contrast_p
         test_time_augment = args.test_time_augment
@@ -130,9 +135,11 @@ if __name__ == '__main__':
         'model_pretrained': model_pretrained,
         'batch_size': batch_size,
         'epochs': epochs,
+        'optimizer_name': optimizer_name,
         'initial_lr': initial_lr,
         'b1': b1, 
         'b2': b2,
+        'schedular_name': schedular_name,
         'trained_epoch': trained_epoch,
         'trained_iter': trained_iter,
         'trained_weights_path': trained_weights_path if trained_weights_path else "",
@@ -181,17 +188,31 @@ if __name__ == '__main__':
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
 
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR)
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR)
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(train_augment_config))
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(valid_augment_config))
 
-    train_dataset_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
-    valid_dataset_loader = DataLoader(valid_dataset, batch_size=16, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    valid_data_loader = DataLoader(valid_dataset, batch_size=16, shuffle=True, num_workers=4, collate_fn=collate_fn)
 
     # load model and make parallel
     model = get_model(config)  
     model = torch.nn.DataParallel(model) 
-    
-    optimizer = get_optimizer(config)
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = get_optimizer(config, trainable_params)
     scheduler = get_scheduler(config, optimizer)
 
-    import pdb; pdb.set_trace()
+    # training
+    for epoch in range(trained_epoch+1, epochs+1):
+
+        # train phase
+        model.train()
+        for images, targets, image_ids in train_data_loader:
+            # import pdb; pdb.set_trace()
+            images = list(image.float().to(device) for image in images)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            # import pdb; pdb.set_trace()
+            loss_dict = model(images, targets)
+
+
+
+            import pdb; pdb.set_trace()
