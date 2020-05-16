@@ -50,21 +50,10 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 
-def get_fasterrcnn_model(backborn, class_num=2, pretrained=True):
-
-    if backborn == 'fasterrcnn_resnet50_fpn':
-        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=pretrained)
-
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, class_num)
-    return model 
 
 
+def get_scheduler(config, optimizer):
 
-def get_model(config):
+    scheduler = None
 
-    if config['model_name'] == 'fasterrcnn':
-        model = get_fasterrcnn_model(backborn=config['model_backborn'],
-                                     pretrained=config['model_pretrained'])
-    
-    return model
+    return scheduler
