@@ -42,7 +42,7 @@ import sklearn.metrics
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
-from functions import convert_dataframe
+from utils.functions import convert_dataframe
 
 
 def collate_fn(batch):
