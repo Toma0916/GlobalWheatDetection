@@ -115,7 +115,7 @@ def get_scheduler(config, optimizer):
         'PiecewiseCyclicalLinear': piecewise_cyclical_linear_scheduler,
         'Poly': poly_scheduler
     }
-    assert config['scheduler_name'] in scheduler_list.keys(), print('Scheduler\'s name is not valid. Available schedulers are ', scheduler_list.keys())
+    assert config['scheduler_name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
     scheduler = scheduler_list[config['scheduler_name']](optimizer)
     return scheduler 
 
