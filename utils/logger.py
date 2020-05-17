@@ -88,7 +88,10 @@ class Averager:
 
 class TensorBoardLogger:
 
-    def __init__(self, config):
+    def __init__(self, model, optimizer, config):
+
+        self.model = model 
+        self.optimizer = optimizer
         
         self.config = config
 
@@ -113,12 +116,12 @@ class TensorBoardLogger:
     def __del__(self):
         pass
 
-    def start_train_epoch(self, optimizer):
+    def start_train_epoch(self):
         self.mode = 'train'
         self.train_loss_epoch_history.reset()
 
         # save leaering late for each epoch
-        learning_rate = get_lr(optimizer)
+        learning_rate = get_lr(self.optimizer)
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
 
 

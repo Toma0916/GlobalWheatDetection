@@ -64,7 +64,7 @@ from utils.logger import TensorBoardLogger
 def train_epoch():
 
     model.train()
-    logger.start_train_epoch(optimizer)
+    logger.start_train_epoch()
     for images, targets, image_ids in train_data_loader:
         images = list(image.float().to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
 
-    logger = TensorBoardLogger(config)
+    logger = TensorBoardLogger(model, optimizer, config)
 
     # load model and make parallel
     model = get_model(config).to(device)
