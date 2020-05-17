@@ -31,8 +31,13 @@ In our pipelinem, you can use bellow with friendly setting scheme and check resu
   -
  
 ## Requirement
-I'm sorry. Will write later...
-
+- numpy=1.18.1
+- pandas=1.0.3
+- opencv=4.2.0
+- scikit-learn=0.22.1 
+- pytorch=1.5.0 
+- torchvision=0.6.0 
+- albumentations=0.4.5
 
 ## Usage
 Please run hogehoge.sh with your parameters.  
