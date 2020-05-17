@@ -60,6 +60,39 @@ from utils.functions import convert_dataframe
 from utils.logger import Averager
 
 
+
+def train_epoch():
+    model.train()
+    itr  = 0
+    for images, targets, image_ids in train_data_loader:
+        images = list(image.float().to(device) for image in images)
+        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+        loss_dict = model(images, targets)
+        losses = sum(loss for loss in loss_dict.values())
+        loss_value = losses.item()
+        # loss_hist.send(loss_value)
+        optimizer.zero_grad()
+        losses.backward()
+        optimizer.step()
+        if (itr % 10 == 0):
+            print(f"Iteration #{itr} loss: {loss_value}")
+        itr += 1
+
+
+def evaluate_epoch():
+    print('eval')
+    # model.eval()  //  forwardの挙動が変わってしまう（？）
+    with torch.no_grad():
+        for images, targets, image_ids in valid_data_loader:
+            optimizer.zero_grad()
+            images = list(image.float().to(device) for image in images)
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            loss_dict = model(images, targets)
+            losses = sum(loss for loss in loss_dict.values())
+            loss_value = losses.item()
+ 
+
+
 if __name__ == '__main__':
 
     now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -77,10 +110,10 @@ if __name__ == '__main__':
     parser.add_argument('--model_not_pretrained', action='store_false')  
 
     # --- train ---
-    parser.add_argument('--batch_size', type=int, default=2)
+    parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--optimizer_name', type=str, default='adam')
-    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--b1', type=float, default=0.5)
     parser.add_argument('--b2', type=float, default=0.999)
     parser.add_argument('--schedular_name', type=str, default='')
@@ -192,11 +225,11 @@ if __name__ == '__main__':
     valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(valid_augment_config))
 
     train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
-    valid_data_loader = DataLoader(valid_dataset, batch_size=16, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
 
     # load model and make parallel
-    model = get_model(config)  
-    model = torch.nn.DataParallel(model) 
+    model = get_model(config).to(device)
+    # model = torch.nn.DataParallel(model) 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     optimizer = get_optimizer(config, trainable_params)
     scheduler = get_scheduler(config, optimizer)
@@ -205,14 +238,9 @@ if __name__ == '__main__':
     for epoch in range(trained_epoch+1, epochs+1):
 
         # train phase
-        model.train()
-        for images, targets, image_ids in train_data_loader:
-            # import pdb; pdb.set_trace()
-            images = list(image.float().to(device) for image in images)
-            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-            # import pdb; pdb.set_trace()
-            loss_dict = model(images, targets)
+        train_epoch()
+        evaluate_epoch()
+        if scheduler is not None:
+            scheduler.step()
 
 
-
-            import pdb; pdb.set_trace()

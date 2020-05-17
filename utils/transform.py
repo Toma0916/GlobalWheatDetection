@@ -69,5 +69,5 @@ class Transform:
         
         sample = albumentation_transforms(**sample)
         image = sample['image']
-        target['boxes'] =torch.stack(tuple(map(torch.tensor, zip(*sample['bboxes'])))).permute(1, 0)
+        target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
         return image, target, image_id
