@@ -108,6 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--output_dir', default=now)
     parser.add_argument('--seed', type=int, default=42)
+    parser.add_argument('--model_save_range', type=int, default=5)
 
     # --- model ---
     parser.add_argument('--model_name', type=str, default='fasterrcnn')  
@@ -143,6 +144,7 @@ if __name__ == '__main__':
     else:
         debug = args.debug
         random_seed = args.seed
+        model_save_range = args.model_save_range
         model_name = args.model_name
         model_backborn = args.model_backborn
         if model_backborn == '':
@@ -168,6 +170,7 @@ if __name__ == '__main__':
         'debug': debug,
         'output_dir': str(OUTPUT_DIR),
         'random_seed': random_seed,
+        'model_save_range': model_save_range,
         'model_name': model_name,
         'model_backborn': model_backborn,
         'model_pretrained': model_pretrained,
@@ -232,8 +235,6 @@ if __name__ == '__main__':
     train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
 
-    logger = TensorBoardLogger(model, optimizer, config)
-
     # load model and make parallel
     model = get_model(config).to(device)
     # model = torch.nn.DataParallel(model) 
@@ -241,8 +242,12 @@ if __name__ == '__main__':
     optimizer = get_optimizer(config, trainable_params)
     scheduler = get_scheduler(config, optimizer)
 
+    logger = TensorBoardLogger(model, optimizer, config)
+
     # training
     for epoch in range(trained_epoch+1, epochs+1):
+
+        print("\r [Epoch %d]" % epoch)
 
         train_epoch()
         evaluate_epoch()
