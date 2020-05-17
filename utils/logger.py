@@ -110,28 +110,21 @@ class MetricAverager:
 
 class TensorBoardLogger:
 
-    def __init__(self, model, optimizer, config):
+    def __init__(self, model, optimizer, output_dir, trained_epoch, model_save_interval):
 
         self.model = model 
         self.optimizer = optimizer
-        self.config = config
-
-        self.trained_epoch = config['trained_epoch']
-        self.trained_iter = config['trained_iter']
+        self.trained_epoch = trained_epoch
         self.trained_epoch_this_run = 0
-        self.model_save_range = config['model_save_range']
-        self.experiment_name = Path(config['output_dir']).name  # 保存するディレクトリ名を一致させる
-        self.save_dir = Path(config['output_dir'])
-
-        assert os.path.exists(str(self.save_dir))  is False
-        os.makedirs(str(self.save_dir), exist_ok=False)
+        self.model_save_interval = model_save_interval
+        self.experiment_name = output_dir.name  # 保存するディレクトリ名を一致させる
+        self.save_dir = output_dir
 
         self.train_loss_epoch_history = LossAverager()
         self.valid_loss_epoch_history = LossAverager()
         self.valid_metric_epoch_history = MetricAverager()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
-        self.log_configs(config)
 
         self.mode = 'train'
 
@@ -155,7 +148,7 @@ class TensorBoardLogger:
         self.trained_epoch_this_run += 1
         
         # save model snapshot
-        if (self.trained_epoch_this_run - 1) % self.model_save_range == 0:
+        if (self.trained_epoch_this_run - 1) % self.model_save_interval == 0:
             filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
             torch.save(self.model.state_dict(), filepath)
 
@@ -184,20 +177,3 @@ class TensorBoardLogger:
         score: float
         """
         self.valid_metric_epoch_history.send(score)
-
-
-    def log_configs(self, config):
-
-        # save config
-        with open(self.save_dir/'train_config.json', 'w') as f:
-            json.dump(config, f)
-
-        for key, value in config.items():
-            if 'train-' in key:
-                key = key.replace('train-', 'train_augument/')
-            elif 'valid-' in key:
-                key = key.replace('valid-', 'valid_augument/')
-            else:
-                key = 'general/%s' % key
-            self.writer.add_text('config/%s' % key, str(value))
-    

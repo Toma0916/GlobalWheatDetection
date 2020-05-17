@@ -216,60 +216,34 @@ class PolyLR(torch.optim.lr_scheduler._LRScheduler):
         return lrs
 
 
-def step_scheduler(optimizer):
-    return torch.optim.lr_scheduler.StepLR(optimizer, 
-                                           step_size=10, 
-                                           gamma=0.1,        
-                                           warmup_factor=1.0 / 3,
-                                           warmup_iters=500,
-                                           warmup_method="linear",
-                                           last_epoch=-1)
+def step_scheduler(optimizer, step_size=10, gamma=0.1, last_epoch=-1):
+    return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma, last_epoch=last_epoch)
 
-def mulitstep_scheduler(optimizer):
-    return torch.optim.lr_scheduler.MultiStepLR(optimizer, 
-                                                milestones=[10, 20, 40], 
-                                                gamma=0.5)
+def mulitstep_scheduler(optimizer, milestones=[10, 20, 40], gamma=0.5):
+    return torch.optim.lr_scheduler.MultiStepLR(optimizer,  milestones, gamma)
 
-def exponential_scheduler(optimizer):
-    return torch.optim.lr_scheduler.ExponentialLR(optimizer, 
-                                                  gamma=0.95)
+def exponential_scheduler(optimizer, gamma=0.95):
+    return torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma)
 
-def cosine_annealing_scheduler(optimizer):
-    return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 
-                                                      T_max=20, 
-                                                      eta_min=0.001)
+def cosine_annealing_scheduler(optimizer, T_max=20, eta_min=0.001):
+    return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,  T_max, eta_min)
 
-def warmup_multistep(optimizer):
-    return WarmupMultiStepLR(optimizer,
-                             milestones=[10, 30, 50],
-                             gamma=0.1,
-                             warmup_factor=1.0 / 3,
-                             warmup_iters=500,
-                             warmup_method="linear")
+def warmup_multistep(optimizer, milestones=[10, 30, 50], gamma=0.1, warmup_factor=1.0/3, warmup_iters=500, warmup_method="linear"):
+    return WarmupMultiStepLR(optimizer, milestones, gamma, warmup_factor, warmup_iters, warmup_method)
 
-def warmup_cosine_annealing_scheduler(optimizer):
-    return WarmupCosineAnnealingLR(optimizer,
-                                   T_max=100,
-                                   warmup_iters=10,
-                                   eta_min=1e-6)
+def warmup_cosine_annealing_scheduler(optimizer, T_max=100, warmup_iters=10, eta_min=1e-6):
+    return WarmupCosineAnnealingLR(optimizer, T_max, warmup_iters, eta_min)
 
-def piecewise_cyclical_linear_scheduler(optimizer):
-    return PiecewiseCyclicalLinearLR(optimizer, 
-                                     c = 10, 
-                                     alpha1=1e-2, 
-                                     alpha2=5e-4, 
-                                     last_epoch=-1)
+def piecewise_cyclical_linear_scheduler(optimizer, c=10, alpha1=1e-2, alpha2=5e-4, last_epoch=-1):
+    return PiecewiseCyclicalLinearLR(optimizer, c, alpha1, alpha2, last_epoch)
 
-def poly_scheduler(optimizer):
-    return PolyLR(optimizer,
-                  power=0.9, 
-                  max_epoch=4e4, 
-                  last_epoch=-1)
+def poly_scheduler(optimizer, power=0.9, max_epoch=4e4, last_epoch=-1):
+    return PolyLR(optimizer, power, max_epoch, last_epoch)
 
 
 def get_scheduler(config, optimizer):
 
-    if config['scheduler_name'] == '':
+    if config['name'] == '':
         return None
 
     scheduler_list = {
@@ -283,7 +257,7 @@ def get_scheduler(config, optimizer):
         'Poly': poly_scheduler
     }
 
-    assert config['scheduler_name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
+    assert config['name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
 
-    scheduler = scheduler_list[config['scheduler_name']](optimizer)
+    scheduler = scheduler_list[config['name']](optimizer, **config['config'])
     return scheduler 

@@ -56,7 +56,10 @@ from albumentations.core.transforms_interface import DualTransform
 
 def get_optimizer(config, parameters):
 
-    if config['optimizer_name'] == 'adam':
-        optimizer = torch.optim.Adam(parameters, lr=config['initial_lr'], betas=(config['b1'], config['b2']))
+    optimizer_list = {
+        'adam': torch.optim.Adam,
+    }
     
+    assert config['name'] in optimizer_list.keys(), 'Optimizer\'s name is not valid. Available optimizes: %s' % str(list(optimizer_list.keys()))
+    optimizer = optimizer_list[config['name']](parameters, **config['config'])
     return optimizer
