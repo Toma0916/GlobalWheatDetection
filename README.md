@@ -4,6 +4,15 @@
 
 This repository is for `Global Wheat Detection` that is Kaggle competition for detection of wheat segments in images. (https://www.kaggle.com/c/global-wheat-detection)
 
+<div align="center">
+<img src="https://user-images.githubusercontent.com/18682053/82140037-b8573d80-9867-11ea-9acb-89bae6fb192e.png" title="OverView1">
+</div>
+
+<div align="center">
+<img src="https://user-images.githubusercontent.com/18682053/82140038-b8efd400-9867-11ea-8618-b4abfb32640a.png" title="OverView2">
+</div>
+
+
 ## Details
 
 We implemented pipeline for object detecion by using pytorch. You can run training and inference very easily in your machines.
