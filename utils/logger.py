@@ -103,6 +103,7 @@ class TensorBoardLogger:
 
         self.train_loss_epoch_history = Averager()
         self.valid_loss_epoch_history = Averager()
+        self.valid_score_epoch_history = Averager()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.log_configs(config)
@@ -137,6 +138,7 @@ class TensorBoardLogger:
     def end_valid_epoch(self):
         for key, value in self.valid_loss_epoch_history.value.items():
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)
+        
 
 
     def send(self, loss_dict):
@@ -145,6 +147,11 @@ class TensorBoardLogger:
         elif self.mode == 'valid':
             self.valid_loss_epoch_history.send(loss_dict)
 
+
+    def send_score(self, score):
+        """score: float
+        """
+        self.writer.add_scalar('valid/score', score, self.trained_epoch + 1)
 
 
     def log_configs(self, config):

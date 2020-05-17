@@ -58,7 +58,7 @@ from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
-
+from utils.metric import calculate_image_precision
 
 
 def train_epoch():
@@ -81,7 +81,8 @@ def train_epoch():
 
     logger.end_train_epoch()
 
-
+CALC_SCORE = True
+CALC_LOSS = True
 def evaluate_epoch():
 
     # model.eval()  //  forwardの挙動が変わってしまう（？）
@@ -91,9 +92,21 @@ def evaluate_epoch():
             optimizer.zero_grad()
             images = list(image.float().to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-            loss_dict = model(images, targets)
-            loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
-            logger.send(loss_dict_detach)
+            if CALC_SCORE:
+                model.eval()
+                outputs = model(images)
+                scores = []
+                for idx, image in enumerate(images):
+                    image_precision = calculate_image_precision([outputs[idx]['boxes'].data.cpu().numpy().tolist()],
+                                                                 targets[idx]['boxes'].cpu().detach().numpy(),
+                                                                 thresholds=[x for x in np.arange(0.5, 0.76, 0.05)], # iou_threshold
+                                                                 form='pascal_voc')
+                    scores.append(image_precision)
+                logger.send_score(np.mean(scores))
+            if CALC_LOSS:
+                loss_dict = model(images, targets)
+                loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
+                logger.send(loss_dict_detach) 
 
     logger.end_valid_epoch()
 
