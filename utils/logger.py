@@ -103,7 +103,6 @@ class TensorBoardLogger:
 
         self.train_loss_epoch_history = Averager()
         self.valid_loss_epoch_history = Averager()
-        self.valid_score_epoch_history = Averager()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.log_configs(config)

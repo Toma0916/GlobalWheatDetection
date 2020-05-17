@@ -81,7 +81,6 @@ def train_epoch():
 
     logger.end_train_epoch()
 
-CALC_SCORE = True
 def evaluate_epoch():
     # model.eval()  //  forwardの挙動が変わってしまう（？）
     logger.start_valid_epoch()
@@ -96,8 +95,6 @@ def evaluate_epoch():
             logger.send(loss_dict_detach) 
 
             # Start calculating scores for competition
-            if not CALC_SCORE:
-                continue
             model.eval()
             outputs = model(images)
             for idx, image in enumerate(images):
