@@ -82,31 +82,32 @@ def train_epoch():
     logger.end_train_epoch()
 
 CALC_SCORE = True
-CALC_LOSS = True
 def evaluate_epoch():
-
     # model.eval()  //  forwardの挙動が変わってしまう（？）
     logger.start_valid_epoch()
     with torch.no_grad():
+        scores = []
         for images, targets, image_ids in valid_data_loader:
             optimizer.zero_grad()
             images = list(image.float().to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-            if CALC_SCORE:
-                model.eval()
-                outputs = model(images)
-                scores = []
-                for idx, image in enumerate(images):
-                    image_precision = calculate_image_precision([outputs[idx]['boxes'].data.cpu().numpy().tolist()],
-                                                                 targets[idx]['boxes'].cpu().detach().numpy(),
-                                                                 thresholds=[x for x in np.arange(0.5, 0.76, 0.05)], # iou_threshold
-                                                                 form='pascal_voc')
-                    scores.append(image_precision)
-                logger.send_score(np.mean(scores))
-            if CALC_LOSS:
-                loss_dict = model(images, targets)
-                loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
-                logger.send(loss_dict_detach) 
+            loss_dict = model(images, targets)
+            loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
+            logger.send(loss_dict_detach) 
+
+            # Start calculating scores for competition
+            if not CALC_SCORE:
+                continue
+            model.eval()
+            outputs = model(images)
+            for idx, image in enumerate(images):
+                image_precision = calculate_image_precision(outputs[idx]['boxes'].data.cpu().numpy(),
+                                                                targets[idx]['boxes'].cpu().detach().numpy(),
+                                                                thresholds=[x for x in np.arange(0.5, 0.76, 0.05)], # iou_threshold
+                                                                form='pascal_voc')
+                scores.append(image_precision)
+            model.train()
+        logger.send_score(np.mean(scores))
 
     logger.end_valid_epoch()
 
