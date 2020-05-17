@@ -54,7 +54,7 @@ from albumentations.core.transforms_interface import DualTransform
 from utils.functions import get_lr
 
 
-class Averager:
+class LossAverager:
     def __init__(self):
         self.current_total =  defaultdict(float)
         self.iterations = 0.0
@@ -86,6 +86,28 @@ class Averager:
 
 
 
+class MetricAverager:
+    def __init__(self):
+        self.current_total = 0.0
+        self.iterations = 0.0
+
+    def send(self, value):
+        self.current_total += value
+        self.iterations += 1
+
+    @property
+    def value(self):
+        if self.iterations == 0:
+            return 0
+        else:
+            return 1.0 * self.current_total / self.iterations
+
+    def reset(self):
+        self.current_total = 0.0
+        self.iterations = 0.0
+
+
+
 class TensorBoardLogger:
 
     def __init__(self, config):
@@ -101,8 +123,9 @@ class TensorBoardLogger:
         assert os.path.exists(str(self.save_dir))  is False
         os.makedirs(str(self.save_dir), exist_ok=False)
 
-        self.train_loss_epoch_history = Averager()
-        self.valid_loss_epoch_history = Averager()
+        self.train_loss_epoch_history = LossAverager()
+        self.valid_loss_epoch_history = LossAverager()
+        self.valid_metric_epoch_history = MetricAverager()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.log_configs(config)
@@ -122,7 +145,6 @@ class TensorBoardLogger:
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
 
 
-
     def end_train_epoch(self):
         for key, value in self.train_loss_epoch_history.value.items():
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
@@ -132,15 +154,16 @@ class TensorBoardLogger:
     def start_valid_epoch(self):
         self.mode = 'valid'
         self.valid_loss_epoch_history.reset()
-    
+        self.valid_metric_epoch_history.reset()
+
 
     def end_valid_epoch(self):
         for key, value in self.valid_loss_epoch_history.value.items():
-            self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)
-        
+            self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
+        self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
 
 
-    def send(self, loss_dict):
+    def send_loss(self, loss_dict):
         if self.mode == 'train':
             self.train_loss_epoch_history.send(loss_dict)
         elif self.mode == 'valid':
@@ -148,9 +171,10 @@ class TensorBoardLogger:
 
 
     def send_score(self, score):
-        """score: float
         """
-        self.writer.add_scalar('valid/score', score, self.trained_epoch + 1)
+        score: float
+        """
+        self.valid_metric_epoch_history.send(score)
 
 
     def log_configs(self, config):

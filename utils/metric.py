@@ -180,3 +180,19 @@ def calculate_image_precision(gts, preds, thresholds = (0.5, ), form = 'coco') -
 
     return image_precision
 
+
+
+def calculate_score(outputs, targets):
+    """
+    calculate score for batch
+    """
+    
+    image_precisions = np.zeros(len(outputs))
+    for i in range(len(outputs)):
+        image_precision = calculate_image_precision(outputs[i]['boxes'].data.cpu().numpy(),
+                                                    targets[i]['boxes'].cpu().detach().numpy(),
+                                                    thresholds=[x for x in np.arange(0.5, 0.76, 0.05)], # iou_threshold
+                                                    form='pascal_voc')
+        image_precisions[i] = image_precision
+    return np.mean(image_precisions)
+        
