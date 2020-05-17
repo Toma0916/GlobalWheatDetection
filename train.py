@@ -108,7 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--output_dir', default=now)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--model_save_range', type=int, default=5)
+    parser.add_argument('--model_save_interval', type=int, default=5)
 
     # --- model ---
     parser.add_argument('--model_name', type=str, default='fasterrcnn')  
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     else:
         debug = args.debug
         random_seed = args.seed
-        model_save_range = args.model_save_range
+        model_save_interval = args.model_save_interval
         model_name = args.model_name
         model_backborn = args.model_backborn
         if model_backborn == '':
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         'debug': debug,
         'output_dir': str(OUTPUT_DIR),
         'random_seed': random_seed,
-        'model_save_range': model_save_range,
+        'model_save_range': model_save_interval,
         'model_name': model_name,
         'model_backborn': model_backborn,
         'model_pretrained': model_pretrained,
