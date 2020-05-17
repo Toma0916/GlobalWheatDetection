@@ -1,4 +1,4 @@
-# GlobalWheatDetection
+# Global Wheat Detection
 
 # Overview
 
@@ -55,7 +55,8 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - albumentations=0.4.5
 
 ## Usage
-Please run hogehoge.sh with your parameters.  
+Make json file about train setting and run hogehoge.sh with json path.
+
 You can use Single GPU.
 Multi GPU will be available soon!
 
