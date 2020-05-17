@@ -17,7 +17,7 @@ This repository is for `Global Wheat Detection` that is Kaggle competition for d
 
 We implemented pipeline for object detecion by using pytorch. You can run training and inference very easily in your machines.
 
-In our pipelinem, you can use bellow with friendly setting scheme and check result with TensorBoard.
+In our pipeline, you can use bellow with friendly setting scheme and check result with TensorBoard.
 
 - model
   -  Faster RCNN
