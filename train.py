@@ -126,7 +126,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=0.0001)
     parser.add_argument('--b1', type=float, default=0.5)
     parser.add_argument('--b2', type=float, default=0.999)
-    parser.add_argument('--schedular_name', type=str, default='')
+    parser.add_argument('--scheduler_name', type=str, default='')
 
     # --- argument ---
     parser.add_argument('--blur_p', type=float, default=1.0)
@@ -161,7 +161,7 @@ if __name__ == '__main__':
         initial_lr = args.lr
         b1 = args.b1
         b2 = args.b2
-        schedular_name = args.schedular_name
+        scheduler_name = args.scheduler_name
         blur_p = args.blur_p
         brightness_contrast_p = args.brightness_contrast_p
         test_time_augment = args.test_time_augment
@@ -184,7 +184,7 @@ if __name__ == '__main__':
         'initial_lr': initial_lr,
         'b1': b1, 
         'b2': b2,
-        'schedular_name': schedular_name,
+        'scheduler_name': scheduler_name,
         'trained_epoch': trained_epoch,
         'trained_iter': trained_iter,
         'trained_weights_path': trained_weights_path if trained_weights_path else "",

@@ -30,9 +30,14 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - 
 
 - scheduler
-  - come soon!
-  -
-  -
+  - StepLR
+  - MultiStepLR
+  - ExponentialLR
+  - CosineAnnealingLR
+  - WarmupMultiStepLR
+  - WarmupCosineAnnealingLR
+  - PiecewiseCyclicalLinearLR
+  - PolyLR
   
 - augument
   - random blur
@@ -40,6 +45,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   -
  
 ## Requirement
+- numba=0.49.1 
 - numpy=1.18.1
 - pandas=1.0.3
 - opencv=4.2.0
