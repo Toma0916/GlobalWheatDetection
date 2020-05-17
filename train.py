@@ -57,40 +57,45 @@ from scheduler import get_scheduler
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.functions import convert_dataframe
-from utils.logger import Averager
+from utils.logger import TensorBoardLogger
 
 
 
 def train_epoch():
+
     model.train()
-    itr  = 0
+    logger.start_train_epoch(optimizer)
     for images, targets, image_ids in train_data_loader:
         images = list(image.float().to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
         loss_value = losses.item()
-        # loss_hist.send(loss_value)
+
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
-        if (itr % 10 == 0):
-            print(f"Iteration #{itr} loss: {loss_value}")
-        itr += 1
+
+        loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
+        logger.send(loss_dict_detach)
+
+    logger.end_train_epoch()
 
 
 def evaluate_epoch():
-    print('eval')
+
     # model.eval()  //  forwardの挙動が変わってしまう（？）
+    logger.start_valid_epoch()
     with torch.no_grad():
         for images, targets, image_ids in valid_data_loader:
             optimizer.zero_grad()
             images = list(image.float().to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             loss_dict = model(images, targets)
-            losses = sum(loss for loss in loss_dict.values())
-            loss_value = losses.item()
- 
+            loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
+            logger.send(loss_dict_detach)
+
+    logger.end_valid_epoch()
 
 
 if __name__ == '__main__':
@@ -227,6 +232,8 @@ if __name__ == '__main__':
     train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
 
+    logger = TensorBoardLogger(config)
+
     # load model and make parallel
     model = get_model(config).to(device)
     # model = torch.nn.DataParallel(model) 
@@ -237,7 +244,6 @@ if __name__ == '__main__':
     # training
     for epoch in range(trained_epoch+1, epochs+1):
 
-        # train phase
         train_epoch()
         evaluate_epoch()
         if scheduler is not None:
