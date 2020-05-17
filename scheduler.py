@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import Path
 import random
+import math
 import re
 import sys
 import gc
@@ -22,6 +23,10 @@ from PIL import Image, ImageEnhance, ImageOps, ImageDraw
 import cv2
 
 import matplotlib.pyplot as plt
+
+### Define custom lr schedulers. Might be better to make another file like 'utils/schedulers.py' for the classes below.
+# from: https://github.com/lyakaap/pytorch-template/blob/master/src/lr_scheduler.py
+from bisect import bisect_right
 
 # --- torch ---
 import torch
@@ -48,85 +53,6 @@ import sklearn.metrics
 # --- albumentations ---
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
-
-
-def step_scheduler(optimizer):
-    return torch.optim.lr_scheduler.StepLR(optimizer, 
-                                           step_size=10, 
-                                           gamma=0.1,        
-                                           warmup_factor=1.0 / 3,
-                                           warmup_iters=500,
-                                           warmup_method="linear",
-                                           last_epoch=-1)
-
-def mulitstep_scheduler(optimizer):
-    return torch.optim.lr_scheduler.MultiStepLR(optimizer, 
-                                                milestones=[10, 20, 40], 
-                                                gamma=0.5)
-
-def exponential_scheduler(optimizer):
-    return torch.optim.lr_scheduler.ExponentialLR(optimizer, 
-                                                  gamma=0.95)
-
-def cosine_annealing_scheduler(optimizer):
-    return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 
-                                                      T_max=20, 
-                                                      eta_min=0.001)
-
-def warmup_multistep(optimizer):
-    return WarmupMultiStepLR(optimizer,
-                             milestones=[10, 30, 50],
-                             gamma=0.1,
-                             warmup_factor=1.0 / 3,
-                             warmup_iters=500,
-                             warmup_method="linear")
-
-def warmup_cosine_annealing_scheduler(optimizer):
-    return WarmupCosineAnnealingLR(optimizer,
-                                   T_max=100,
-                                   warmup_iters=10,
-                                   eta_min=1e-6)
-
-def piecewise_cyclical_linear_scheduler(optimizer):
-    return PiecewiseCyclicalLinearLR(optimizer, 
-                                     c = 10, 
-                                     alpha1=1e-2, 
-                                     alpha2=5e-4, 
-                                     last_epoch=-1)
-
-def poly_scheduler(optimizer):
-    return PolyLR(optimizer,
-                  power=0.9, 
-                  max_epoch=4e4, 
-                  last_epoch=-1)
-
-
-def get_scheduler(config, optimizer):
-    if config['scheduler_name'] == '':
-        return None
-
-    scheduler_list = {
-        'Step': step_scheduler,
-        'MultiStep': mulitstep_scheduler,
-        'Exponential': exponential_scheduler,
-        'CosineAnnealing': cosine_annealing_scheduler,
-        'WarmupMultiStep': warmup_multistep,
-        'WarmupCosineAnnealing': warmup_cosine_annealing_scheduler,
-        'PiecewiseCyclicalLinear': piecewise_cyclical_linear_scheduler,
-        'Poly': poly_scheduler
-    }
-    assert config['scheduler_name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
-    scheduler = scheduler_list[config['scheduler_name']](optimizer)
-    return scheduler 
-
-
-
-### Define custom lr schedulers. Might be better to make another file like 'utils/schedulers.py' for the classes below.
-# from: https://github.com/lyakaap/pytorch-template/blob/master/src/lr_scheduler.py
-from bisect import bisect_right
-import math
-
-import torch
 
 
 class WarmupMultiStepLR(torch.optim.lr_scheduler._LRScheduler):
@@ -288,3 +214,76 @@ class PolyLR(torch.optim.lr_scheduler._LRScheduler):
             lrs.append(lr)
 
         return lrs
+
+
+def step_scheduler(optimizer):
+    return torch.optim.lr_scheduler.StepLR(optimizer, 
+                                           step_size=10, 
+                                           gamma=0.1,        
+                                           warmup_factor=1.0 / 3,
+                                           warmup_iters=500,
+                                           warmup_method="linear",
+                                           last_epoch=-1)
+
+def mulitstep_scheduler(optimizer):
+    return torch.optim.lr_scheduler.MultiStepLR(optimizer, 
+                                                milestones=[10, 20, 40], 
+                                                gamma=0.5)
+
+def exponential_scheduler(optimizer):
+    return torch.optim.lr_scheduler.ExponentialLR(optimizer, 
+                                                  gamma=0.95)
+
+def cosine_annealing_scheduler(optimizer):
+    return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, 
+                                                      T_max=20, 
+                                                      eta_min=0.001)
+
+def warmup_multistep(optimizer):
+    return WarmupMultiStepLR(optimizer,
+                             milestones=[10, 30, 50],
+                             gamma=0.1,
+                             warmup_factor=1.0 / 3,
+                             warmup_iters=500,
+                             warmup_method="linear")
+
+def warmup_cosine_annealing_scheduler(optimizer):
+    return WarmupCosineAnnealingLR(optimizer,
+                                   T_max=100,
+                                   warmup_iters=10,
+                                   eta_min=1e-6)
+
+def piecewise_cyclical_linear_scheduler(optimizer):
+    return PiecewiseCyclicalLinearLR(optimizer, 
+                                     c = 10, 
+                                     alpha1=1e-2, 
+                                     alpha2=5e-4, 
+                                     last_epoch=-1)
+
+def poly_scheduler(optimizer):
+    return PolyLR(optimizer,
+                  power=0.9, 
+                  max_epoch=4e4, 
+                  last_epoch=-1)
+
+
+def get_scheduler(config, optimizer):
+
+    if config['scheduler_name'] == '':
+        return None
+
+    scheduler_list = {
+        'Step': step_scheduler,
+        'MultiStep': mulitstep_scheduler,
+        'Exponential': exponential_scheduler,
+        'CosineAnnealing': cosine_annealing_scheduler,
+        'WarmupMultiStep': warmup_multistep,
+        'WarmupCosineAnnealing': warmup_cosine_annealing_scheduler,
+        'PiecewiseCyclicalLinear': piecewise_cyclical_linear_scheduler,
+        'Poly': poly_scheduler
+    }
+
+    assert config['scheduler_name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
+
+    scheduler = scheduler_list[config['scheduler_name']](optimizer)
+    return scheduler 
