@@ -1,0 +1,43 @@
+{
+    "debug": true,
+    "general": {
+        "output_dirname": "sample",
+        "seed": 42,
+        "model_save_interval": 3
+    },
+    "model": {
+        "name": "faster_rcnn", 
+        "config": {
+            "backborn": "fasterrcnn_resnet50_fpn",
+            "pretrained": true
+        }
+    },
+    "train": {
+        "batch_size": 8,
+        "epochs": 10,
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "b1": 0.5,
+                "b2": 0.999
+            }
+        },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.1,
+                "warmup_factor": 0.3333,
+                "warmup_iters": 500,
+                "warmup_method": "liner",
+                "last_epoch": -1
+            }
+        },
+        "augument": {
+            "blur_p": 0.0,
+            "brightness_contrast_p": 0.0,
+            "test_time_augment": false
+        }
+    }
+}
