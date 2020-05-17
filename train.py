@@ -101,6 +101,9 @@ def evaluate_epoch():
             matric_score = calculate_score(outputs, targets)
             logger.send_score(matric_score)
 
+    
+    # 最後のevalのloopで生成されたものを保存する
+    logger.send_images(images, image_ids, targets, outputs)
     logger.end_valid_epoch()
 
 
