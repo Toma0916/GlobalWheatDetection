@@ -58,7 +58,7 @@ from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
-
+from utils.metric import calculate_score
 
 
 def train_epoch():
@@ -70,30 +70,34 @@ def train_epoch():
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
-        loss_value = losses.item()
-
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
 
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
-        logger.send(loss_dict_detach)
+        logger.send_loss(loss_dict_detach)
 
     logger.end_train_epoch()
 
-
 def evaluate_epoch():
 
-    # model.eval()  //  forwardの挙動が変わってしまう（？）
     logger.start_valid_epoch()
     with torch.no_grad():
+
         for images, targets, image_ids in valid_data_loader:
+            model.train()
             optimizer.zero_grad()
             images = list(image.float().to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
             loss_dict = model(images, targets)
             loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
-            logger.send(loss_dict_detach)
+            logger.send_loss(loss_dict_detach) 
+
+            # Start calculating scores for competition
+            model.eval()
+            outputs = model(images)
+            matric_score = calculate_score(outputs, targets)
+            logger.send_score(matric_score)
 
     logger.end_valid_epoch()
 
