@@ -30,9 +30,14 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - 
 
 - scheduler
-  - come soon!
-  -
-  -
+  - StepLR
+  - MultiStepLR
+  - ExponentialLR
+  - CosineAnnealingLR
+  - WarmupMultiStepLR
+  - WarmupCosineAnnealingLR
+  - PiecewiseCyclicalLinearLR
+  - PolyLR
   
 - augument
   - random blur
