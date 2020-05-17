@@ -88,13 +88,16 @@ class Averager:
 
 class TensorBoardLogger:
 
-    def __init__(self, config):
-        
+    def __init__(self, model, optimizer, config):
+
+        self.model = model 
+        self.optimizer = optimizer
         self.config = config
 
         self.trained_epoch = config['trained_epoch']
         self.trained_iter = config['trained_iter']
-        
+        self.trained_epoch_this_run = 0
+        self.model_save_range = config['model_save_range']
         self.experiment_name = Path(config['output_dir']).name  # 保存するディレクトリ名を一致させる
         self.save_dir = Path(config['output_dir'])
 
@@ -113,12 +116,12 @@ class TensorBoardLogger:
     def __del__(self):
         pass
 
-    def start_train_epoch(self, optimizer):
+    def start_train_epoch(self):
         self.mode = 'train'
         self.train_loss_epoch_history.reset()
 
         # save leaering late for each epoch
-        learning_rate = get_lr(optimizer)
+        learning_rate = get_lr(self.optimizer)
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
 
 
@@ -127,7 +130,13 @@ class TensorBoardLogger:
         for key, value in self.train_loss_epoch_history.value.items():
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
         self.trained_epoch += 1
-    
+        self.trained_epoch_this_run += 1
+        
+        # save model snapshot
+        if (self.trained_epoch_this_run - 1) % self.model_save_range == 0:
+            filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
+            torch.save(self.model.state_dict(), filepath)
+
 
     def start_valid_epoch(self):
         self.mode = 'valid'
