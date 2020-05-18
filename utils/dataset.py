@@ -113,6 +113,20 @@ class GWDDataset(DatasetMixin):
         self.mosaic = False
         self.img_size = 1024
 
+        # precalculate labels for mosaic function
+        im_w = 1024
+        im_h = 1024
+        for i, img_id in enumerate(self.image_ids):
+            records = self.df[self.df['image_id'] == img_id]
+            boxes = records[['x', 'y', 'w', 'h']].values
+            boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
+            boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
+            boxesyolo = []
+            for box in boxes:
+                x1, y1, x2, y2 = box
+                xc, yc, w, h = 0.5*x1/im_w+0.5*x2/im_w, 0.5*y1/im_h+0.5*y2/im_h, abs(x2/im_w-x1/im_w), abs(y2/im_h-y1/im_h)
+                boxesyolo.append([0, xc, yc, w, h])
+            self.labels[i] = np.array(boxesyolo)
 
     def __len__(self):
         """return length of this dataset"""
