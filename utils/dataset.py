@@ -114,6 +114,7 @@ class GWDDataset(DatasetMixin):
         self.img_size = 1024
 
         # precalculate labels for mosaic function
+        self.labels = [np.zeros((0, 5), dtype=np.float32)] * len(self.image_ids)
         im_w = 1024
         im_h = 1024
         for i, img_id in enumerate(self.image_ids):
@@ -135,8 +136,11 @@ class GWDDataset(DatasetMixin):
     def get_example(self, i):
         self.mosaic = True if np.random.rand() < self.transform_config['mosaic']['p'] else False
         image_id = self.image_ids[self.indices[i]]
+        target = {}
         if self.mosaic:
-            img, targets = load_mosaic(self, i)
+            image, labels_mosaic = load_mosaic(self, i)
+            boxes = labels_mosaic[:, 1:]
+
         else:
             records = self.df[self.df['image_id'] == image_id]
 
@@ -148,19 +152,19 @@ class GWDDataset(DatasetMixin):
             boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
             boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
 
-            area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-            area = torch.as_tensor(area, dtype=torch.float32)
+        labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
 
-            labels = torch.ones((records.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
-            iscrowd = torch.zeros((records.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+        iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+        
+        area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+        area = torch.as_tensor(area, dtype=torch.float32)
 
-            target = {}
-            target['boxes'] = boxes
-            target['labels'] = labels
-            target['image_id'] = torch.tensor([self.indices[i]])
-            target['area'] = area
-            target['iscrowd'] = iscrowd
-            target = filter_bboxes_by_size(target, self.bbox_filter_config)
+        target['boxes'] = boxes
+        target['labels'] = labels
+        target['image_id'] = torch.tensor([self.indices[i]])
+        target['area'] = area
+        target['iscrowd'] = iscrowd
+        target = filter_bboxes_by_size(target, self.bbox_filter_config)
         return image, target, image_id
 
 def load_image(self, index):

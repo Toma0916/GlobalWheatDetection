@@ -54,7 +54,7 @@
             "motion_blur": {
                 "p": 1.0
             },
-            "chennel_shufflle": {
+            "channel_shuffle": {
                 "p": 1.0
             },
             "random_brightness": {
