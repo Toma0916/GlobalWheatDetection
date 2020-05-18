@@ -72,3 +72,16 @@ def convert_dataframe(dataframe):
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
+
+def filter_large_bboxes(targets, config):
+    if 'bboxes_size_thres' not in config.keys():
+        return targets
+    thres = config['bboxes_size_thres']
+    targets_filtered = []
+    for target in targets:
+        target_filtered = {'boxes': target['boxes'][target['area']<thres], 
+                           'labels': target['labels'][target['area']<thres],
+                           'area': target['area'][target['area']<thres],
+                           'image_id':target['image_id']}
+        targets_filtered.append(target_filtered)
+    return targets_filtered
