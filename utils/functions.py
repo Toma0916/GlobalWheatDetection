@@ -73,17 +73,24 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
-def filter_large_bboxes(targets, config):
-    if 'bboxes_size_thres' not in config['general'].keys():
-        return targets
-    thres = config['general']['bboxes_size_thres']
+def get_filtered_bboxes(targets, thres, max_or_min):
+    """
+    if max: max_or_min = 1
+    if min: max_or_min = -1   
+    """
     targets_filtered = []
     for target in targets:
-        target_filtered = {'boxes': target['boxes'][target['area']<thres], 
-                           'labels': target['labels'][target['area']<thres],
-                           'area': target['area'][target['area']<thres],
+        filtered = max_or_min*target['area'] < max_or_min*thres
+        target_filtered = {'boxes': target['boxes'][filtered], 
+                           'labels': target['labels'][filtered],
+                           'area': target['area'][filtered],
                            'image_id':target['image_id']}
         targets_filtered.append(target_filtered)
-        if (target['labels'].shape[0] != target_filtered['labels'].shape[0]) and config['debug']:
-            print("OHH!!!! DETECTED LARGE BBOX!!!!")
     return targets_filtered
+
+def filter_bboxes_by_size(targets, config):
+    if 'max_bbox_size' in config['general'].keys():
+        targets = get_filtered_bboxes(targets, config['general']['max_bbox_size'], 1)
+    if 'min_bbox_size' in config['general'].keys():
+        targets = get_filtered_bboxes(targets, config['general']['min_bbox_size'], -1)
+    return targets
