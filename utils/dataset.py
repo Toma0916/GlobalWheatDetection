@@ -42,7 +42,7 @@ import sklearn.metrics
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
-from utils.functions import convert_dataframe
+from utils.functions import convert_dataframe, filter_bboxes_by_size
 
 
 def collate_fn(batch):
@@ -98,7 +98,7 @@ class DatasetMixin(Dataset):
 
 class GWDDataset(DatasetMixin):
 
-    def __init__(self, dataframe, image_dir, transform=None):
+    def __init__(self, dataframe, image_dir, transform=None, bbox_filter_cfg=None):
         
         super(GWDDataset, self).__init__(transform=transform)
 
@@ -106,6 +106,7 @@ class GWDDataset(DatasetMixin):
         self.df = dataframe
         self.image_dir = image_dir
         self.indices = np.arange(len(self.image_ids))
+        self.bbox_filter_cfg = bbox_filter_cfg
 
 
     def __len__(self):
@@ -137,7 +138,7 @@ class GWDDataset(DatasetMixin):
         target['image_id'] = torch.tensor([self.indices[i]])
         target['area'] = area
         target['iscrowd'] = iscrowd
-
+        target = filter_bboxes_by_size(target, self.bbox_filter_cfg)
         return image, target, image_id
 
 

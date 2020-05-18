@@ -58,7 +58,7 @@ from scheduler import get_scheduler
 
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
-from utils.functions import convert_dataframe, filter_bboxes_by_size
+from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
 
@@ -69,7 +69,6 @@ def train_epoch():
     logger.start_train_epoch()
     for images, targets, image_ids in tqdm.tqdm(train_data_loader):
         images = list(image.float().to(device) for image in images)
-        targets = filter_bboxes_by_size(targets, config)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
@@ -91,7 +90,6 @@ def evaluate_epoch():
             model.train()
             optimizer.zero_grad()
             images = list(image.float().to(device) for image in images)
-            targets = filter_bboxes_by_size(targets, config)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
@@ -191,8 +189,8 @@ if __name__ == '__main__':
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
 
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=True))
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=False))
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=True), config['general']['bbox_filter'])
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=False), config['general']['bbox_filter'])
 
     train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
