@@ -23,26 +23,6 @@ import cv2
 
 import matplotlib.pyplot as plt
 
-# # --- torch ---
-# import torch
-# from torch import nn
-# import torch.nn.functional as F
-# from torch.nn import Sequential
-# from torch.autograd import Variable
-# from torch.utils.data.dataset import Dataset
-# from torch.utils.data.dataloader import DataLoader
-# from torch.utils.tensorboard import SummaryWriter
-
-# # --- models ---
-# from sklearn import preprocessing
-# from sklearn.model_selection import KFold, train_test_split
-# from skimage.transform import AffineTransform, warp
-# import sklearn.metrics
-
-# # --- albumentations ---
-# import albumentations as A
-# from albumentations.core.transforms_interface import DualTransform
-
 
 def convert_dataframe(dataframe):
     """
@@ -73,19 +53,25 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
-def get_filtered_bboxes(target, thres, max_or_min):
+
+def get_filtered_bboxes(target, threshold, max_or_min):
     """
     if max: max_or_min = 1
     if min: max_or_min = -1   
     """
-    filtered = max_or_min*target['area'] < max_or_min*thres
+    filtered = (max_or_min * target['area']) < (max_or_min * threshold)
     target_filtered = {'boxes': target['boxes'][filtered], 
-                        'labels': target['labels'][filtered],
-                        'area': target['area'][filtered],
-                        'image_id':target['image_id']}
+                       'labels': target['labels'][filtered],
+                       'area': target['area'][filtered],
+                       'image_id': target['image_id']}
     return target_filtered
 
+
 def filter_bboxes_by_size(target, config):
+
+    if config is None:
+        return target
+
     if config['max_bbox_size'] >= 0:
         target = get_filtered_bboxes(target, config['max_bbox_size'], 1)
     if config['min_bbox_size'] >= 0:

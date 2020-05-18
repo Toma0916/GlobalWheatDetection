@@ -98,7 +98,7 @@ class DatasetMixin(Dataset):
 
 class GWDDataset(DatasetMixin):
 
-    def __init__(self, dataframe, image_dir, transform=None, bbox_filter_cfg=None):
+    def __init__(self, dataframe, image_dir, transform=None, bbox_filter_config=None):
         
         super(GWDDataset, self).__init__(transform=transform)
 
@@ -106,7 +106,7 @@ class GWDDataset(DatasetMixin):
         self.df = dataframe
         self.image_dir = image_dir
         self.indices = np.arange(len(self.image_ids))
-        self.bbox_filter_cfg = bbox_filter_cfg
+        self.bbox_filter_config = bbox_filter_config
 
 
     def __len__(self):
@@ -138,7 +138,7 @@ class GWDDataset(DatasetMixin):
         target['image_id'] = torch.tensor([self.indices[i]])
         target['area'] = area
         target['iscrowd'] = iscrowd
-        target = filter_bboxes_by_size(target, self.bbox_filter_cfg)
+        target = filter_bboxes_by_size(target, self.bbox_filter_config)
         return image, target, image_id
 
 
