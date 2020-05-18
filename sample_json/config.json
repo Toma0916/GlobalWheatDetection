@@ -42,6 +42,9 @@
             }
         },
         "augument": {
+            "mosaic": {
+                "p": 0.0
+            },
             "horizontal_frip": {
                 "p": 1.0
             },
