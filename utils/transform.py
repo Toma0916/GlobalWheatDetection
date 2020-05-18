@@ -56,12 +56,10 @@ class Transform:
             # flip系
             self.horizontal_flip = config['horizontal_flip'] if ('horizontal_flip' in config) else {'p': 0.0}
             self.vertical_flip = config['vertical_flip'] if ('vertical_flip' in config) else {'p': 0.0}
+            self.random_rotate_90 = config['random_rotate_90'] if ('random_rotate_90' in config) else {'p': 0.0}
 
-            # rotation augments
-            self.random_rotate_90 = config['random_rotate_90'] if ('random_rotate_90' in config) else {'height':1024, 'width':1024, 'p': 0.0}
-
-            # crop augments
-            self.random_sized_bbox_safe_crop = config['random_sized_bbox_safe_crop'] if ('random_sized_bbox_safe_crop' in config) else {'p': 0.0}
+            # crop系
+            self.random_sized_bbox_safe_crop = config['random_sized_bbox_safe_crop'] if ('random_sized_bbox_safe_crop' in config) else {'height':1024, 'width':1024, 'p': 0.0}
 
             # blur系
             self.blur = config['blur'] if ('blur' in config) else {'p': 0.0}
