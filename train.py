@@ -190,8 +190,8 @@ if __name__ == '__main__':
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
 
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=True), config['general']['bbox_filter'])
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=False), config['general']['bbox_filter'])
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augment'], is_train=True), config['general']['bbox_filter'])
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augment'], is_train=False), config['general']['bbox_filter'])
 
     train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)

@@ -39,7 +39,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - PiecewiseCyclicalLinearLR
   - PolyLR
   
-- augument
+- augmentations
   - HorizontalFlip
   - VerticalFlip
   - Blur

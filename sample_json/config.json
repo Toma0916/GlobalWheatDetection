@@ -41,7 +41,7 @@
                 "last_epoch": -1
             }
         },
-        "augument": {
+        "augment": {
             "horizontal_frip": {
                 "p": 1.0
             },
