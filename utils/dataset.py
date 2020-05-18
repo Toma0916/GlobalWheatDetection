@@ -139,6 +139,9 @@ class GWDDataset(DatasetMixin):
         image_id = self.image_ids[self.indices[i]]
         records = self.df[self.df['image_id'] == image_id]
 
+        # konohen umai kakikata attara tanomu
+        if 'mosaic' not in self.transform_config.keys():
+            self.transform_config['mosaic'] = {'p': 0.0 }
         if np.random.rand() < self.transform_config['mosaic']['p'] and self.is_train:
             image, boxes = load_mosaic(self, i)
         else:
