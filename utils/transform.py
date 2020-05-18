@@ -54,8 +54,14 @@ class Transform:
         if is_train or config['test_time_augment']:
 
             # flip系
-            self.horizontal_frip = config['horizontal_frip'] if ('horizontal_frip' in config) else {'p': 0.0}
-            self.vertical_frip = config['vertical_frip'] if ('vertical_frip' in config) else {'p': 0.0}
+            self.horizontal_flip = config['horizontal_flip'] if ('horizontal_flip' in config) else {'p': 0.0}
+            self.vertical_flip = config['vertical_flip'] if ('vertical_flip' in config) else {'p': 0.0}
+
+            # rotation augments
+            self.random_rotate_90 = config['random_rotate_90'] if ('random_rotate_90' in config) else {'height':1024, 'width':1024, 'p': 0.0}
+
+            # crop augments
+            self.random_sized_bbox_safe_crop = config['random_sized_bbox_safe_crop'] if ('random_sized_bbox_safe_crop' in config) else {'p': 0.0}
 
             # blur系
             self.blur = config['blur'] if ('blur' in config) else {'p': 0.0}
@@ -70,7 +76,7 @@ class Transform:
 
             # color系
             self.clahe = config['clahe'] if ('clahe' in config) else {'p': 0.0}
-            self.chennel_shufflle = config['chennel_shufflle'] if ('chennel_shufflle' in config) else {'p': 0.0} 
+            self.channel_shuffle = config['channel_shuffle'] if ('channel_shuffle' in config) else {'p': 0.0} 
             self.random_gamma = config['random_gamma'] if ('random_gamma' in config) else {'p': 0.0}
             self.hue_saturation_value = config['hue_saturation_value'] if ('hue_saturation_value' in config) else {'p': 0.0}
             self.rgb_shift = config['rgb_shift'] if ('rgb_shift' in config) else {'p': 0.0}
@@ -83,8 +89,10 @@ class Transform:
 
 
         else:
-            self.horizontal_frip = {'p': 0.0}
-            self.vertical_frip = {'p': 0.0} 
+            self.horizontal_flip = {'p': 0.0}
+            self.vertical_flip = {'p': 0.0} 
+            self.random_rotate_90 = {'p': 0.0}
+            self.random_sized_bbox_safe_crop = {'height':1024, 'width':1024, 'p': 0.0}
             self.blur = {'p': 0.0}
             self.motion_blur = {'p': 0.0}
             self.median_blur = {'p': 0.0}
@@ -93,7 +101,7 @@ class Transform:
             self.grid_distorion = {'p': 0.0}
             self.elastic_distorion = {'p': 0.0}
             self.clahe = {'p': 0.0}
-            self.chennel_shufflle = {'p': 0.0}
+            self.channel_shuffle = {'p': 0.0}
             self.random_gamma = {'p': 0.0}
             self.hue_saturation_value = {'p': 0.0}
             self.rgb_shift = {'p': 0.0}
@@ -113,8 +121,10 @@ class Transform:
         }
 
         albumentation_transforms = A.Compose([
-            A.HorizontalFlip(**self.horizontal_frip),
-            A.VerticalFlip(**self.vertical_frip),
+            A.HorizontalFlip(**self.horizontal_flip),
+            A.VerticalFlip(**self.vertical_flip),
+            A.RandomRotate90(**self.random_rotate_90),
+            A.RandomSizedBBoxSafeCrop(**self.random_sized_bbox_safe_crop),
             A.Blur(**self.blur),
             A.MotionBlur(**self.motion_blur),
             A.MedianBlur(**self.median_blur),
@@ -123,7 +133,7 @@ class Transform:
             A.GridDistortion(**self.grid_distorion),
             A.ElasticTransform(**self.elastic_distorion),
             A.CLAHE(**self.clahe),
-            A.ChannelShuffle(**self.chennel_shufflle),
+            A.ChannelShuffle(**self.channel_shuffle),
             A.RandomGamma(**self.random_gamma),
             A.HueSaturationValue(**self.hue_saturation_value),
             A.RGBShift(**self.rgb_shift),
