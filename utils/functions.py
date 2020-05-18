@@ -74,9 +74,9 @@ def get_lr(optimizer):
         return param_group['lr']
 
 def filter_large_bboxes(targets, config):
-    if 'bboxes_size_thres' not in config.keys():
+    if 'bboxes_size_thres' not in config['general'].keys():
         return targets
-    thres = config['bboxes_size_thres']
+    thres = config['general']['bboxes_size_thres']
     targets_filtered = []
     for target in targets:
         target_filtered = {'boxes': target['boxes'][target['area']<thres], 
@@ -84,4 +84,6 @@ def filter_large_bboxes(targets, config):
                            'area': target['area'][target['area']<thres],
                            'image_id':target['image_id']}
         targets_filtered.append(target_filtered)
+        if (target['labels'].shape[0] != target_filtered['labels'].shape[0]) and config['debug']:
+            print("OHH!!!! DETECTED LARGE BBOX!!!!")
     return targets_filtered
