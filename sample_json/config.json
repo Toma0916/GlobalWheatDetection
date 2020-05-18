@@ -4,7 +4,8 @@
         "output_dirname": "sample",
         "seed": 42,
         "model_save_interval": 3,
-        "bboxes_size_thres": 160000
+        "max_bbox_size": 160000,
+        "min_bbox_size": 3000
     },
     "model": {
         "name": "faster_rcnn", 
