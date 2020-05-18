@@ -111,47 +111,38 @@ class GWDDataset(DatasetMixin):
         self.df = dataframe
         self.image_dir = image_dir
         self.indices = np.arange(len(self.image_ids))
-        self.mosaic = False
         self.img_size = 1024
 
         # precalculate labels for mosaic function
-        self.labels = [np.zeros((0, 5), dtype=np.float32)] * len(self.image_ids)
+        self.boxes_list_coco = [np.zeros((0, 4), dtype=np.float32)] * len(self.image_ids)
+        self.boxes_list_pascalvoc = [np.zeros((0, 4), dtype=np.float32)] * len(self.image_ids)
         im_w = 1024
         im_h = 1024
         for i, img_id in enumerate(self.image_ids):
             records = self.df[self.df['image_id'] == img_id]
-            boxes = records[['x', 'y', 'w', 'h']].values
-            boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
-            boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
-            boxesyolo = []
-            for box in boxes:
+            boxes_pascalvoc = records[['x', 'y', 'w', 'h']].values
+            boxes_pascalvoc[:, 2] = boxes_pascalvoc[:, 0] + boxes_pascalvoc[:, 2]
+            boxes_pascalvoc[:, 3] = boxes_pascalvoc[:, 1] + boxes_pascalvoc[:, 3]
+            boxes_coco = []
+            for box in boxes_pascalvoc:
                 x1, y1, x2, y2 = box
                 xc, yc, w, h = 0.5*x1/im_w+0.5*x2/im_w, 0.5*y1/im_h+0.5*y2/im_h, abs(x2/im_w-x1/im_w), abs(y2/im_h-y1/im_h)
-                boxesyolo.append([0, xc, yc, w, h])
-            self.labels[i] = np.array(boxesyolo)
+                boxes_coco.append([xc, yc, w, h])
+            self.boxes_list_pascalvoc[i] = np.array(boxes_pascalvoc)
+            self.boxes_list_coco[i] = np.array(boxes_coco)
 
     def __len__(self):
         """return length of this dataset"""
         return len(self.indices)
     
     def get_example(self, i):
-        self.mosaic = True if np.random.rand() < self.transform_config['mosaic']['p'] else False
         image_id = self.image_ids[self.indices[i]]
-        target = {}
-        if self.mosaic and self.is_train:
-            image, labels_mosaic = load_mosaic(self, i)
-            boxes = labels_mosaic[:, 1:]
+        records = self.df[self.df['image_id'] == image_id]
 
+        if np.random.rand() < self.transform_config['mosaic']['p'] and self.is_train:
+            image, boxes = load_mosaic(self, i)
         else:
-            records = self.df[self.df['image_id'] == image_id]
-
-            image = cv2.imread(str(self.image_dir/('%s.jpg' % image_id)), cv2.IMREAD_COLOR)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
-            image /= 255.0
-
-            boxes = records[['x', 'y', 'w', 'h']].values
-            boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
-            boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
+            image, boxes = load_image(self, i)
 
         labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
 
@@ -160,6 +151,7 @@ class GWDDataset(DatasetMixin):
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         area = torch.as_tensor(area, dtype=torch.float32)
 
+        target = {}
         target['boxes'] = boxes
         target['labels'] = labels
         target['image_id'] = torch.tensor([self.indices[i]])
@@ -172,21 +164,24 @@ def load_image(self, index):
     # loads 1 image from dataset, returns img, original hw, resized hw
     image_id = self.image_ids[index]
     image = cv2.imread(str(self.image_dir/('%s.jpg' % image_id)), cv2.IMREAD_COLOR)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
+    image /= 255.0
     h0, w0 = image.shape[:2]  # orig hw
-    return image, (h0, w0), image.shape[:2]  # img, hw_original, hw_resized
+    boxes = self.boxes_list_pascalvoc[index]
+    return image, boxes #, (h0, w0), image.shape[:2]  # img, hw_original, hw_resized
 
 def load_mosaic(self, index):
-    labels4 = []
+    boxes4 = []
     s = self.img_size
     xc, yc = [int(random.uniform(s * 0.5, s * 1.5)) for _ in range(2)]  # mosaic center x, y
-    indices = [index] + [random.randint(0, len(self.labels) - 1) for _ in range(3)]  # 3 additional image indices
+    indices = [index] + [random.randint(0, len(self.boxes_list_coco) - 1) for _ in range(3)]  # 3 additional image indices
     for i, index in enumerate(indices):
         # Load image
-        img, _, (h, w) = load_image(self, index)
-
+        img, _= load_image(self, index)
+        h, w = img.shape[:2]
         # place img in img4
         if i == 0:  # top left
-            img4 = np.full((s * 2, s * 2, img.shape[2]), 114, dtype=np.uint8)  # base image with 4 tiles
+            img4 = np.full((s * 2, s * 2, img.shape[2]), 114.0/255.0, dtype=np.float32)  # base image with 4 tiles
             x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
             x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
         elif i == 1:  # top right
@@ -204,21 +199,21 @@ def load_mosaic(self, index):
         padh = y1a - y1b
 
         # Labels
-        x = self.labels[index]
-        labels = x.copy()
+        x = self.boxes_list_coco[index]
+        boxes = x.copy()
         if x.size > 0:  # Normalized xywh to pixel xyxy format
-            labels[:, 1] = w * (x[:, 1] - x[:, 3] / 2) + padw
-            labels[:, 2] = h * (x[:, 2] - x[:, 4] / 2) + padh
-            labels[:, 3] = w * (x[:, 1] + x[:, 3] / 2) + padw
-            labels[:, 4] = h * (x[:, 2] + x[:, 4] / 2) + padh
-        labels4.append(labels)
+            boxes[:, 0] = w * (x[:, 0] - x[:, 2] / 2) + padw
+            boxes[:, 1] = h * (x[:, 1] - x[:, 3] / 2) + padh
+            boxes[:, 2] = w * (x[:, 0] + x[:, 2] / 2) + padw
+            boxes[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh
+        boxes4.append(boxes)
 
     # Concat/clip labels
-    if len(labels4):
-        labels4 = np.concatenate(labels4, 0)
+    if len(boxes4):
+        boxes4 = np.concatenate(boxes4, 0)
         # np.clip(labels4[:, 1:] - s / 2, 0, s, out=labels4[:, 1:])  # use with center crop
-        np.clip(labels4[:, 1:], 0, 2 * s, out=labels4[:, 1:])  # use with random_affine
-    return img4, labels4
+        np.clip(boxes4, 0, 2 * s, out=boxes4)  # use with random_affine
+    return img4, boxes4
 
 if __name__ == '__main__':
 
