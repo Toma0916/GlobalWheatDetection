@@ -10,6 +10,7 @@ import json
 import time
 import datetime
 import shutil
+import tqdm
 from logging import getLogger
 from time import perf_counter
 import warnings
@@ -66,7 +67,7 @@ def train_epoch():
 
     model.train()
     logger.start_train_epoch()
-    for images, targets, image_ids in train_data_loader:
+    for images, targets, image_ids in tqdm.tqdm(train_data_loader):
         images = list(image.float().to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
