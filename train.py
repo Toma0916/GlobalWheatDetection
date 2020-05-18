@@ -153,6 +153,7 @@ if __name__ == '__main__':
     device = torch.device('cuda:0')
 
     if os.path.exists(OUTPUT_DIR):
+        print('[WIP]: reload weights. Execute sys.exit().')
         sys.exit()  # [WIP]: reload weights
     else:
 

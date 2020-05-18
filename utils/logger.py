@@ -129,6 +129,7 @@ class ImageStorage():
         id_image_dict = {}
         for i in range(len(self.image_ids)):
             image = self.images[i]
+            image = cv2.UMat(image).get()
             for j in range(self.target_boxes[i].shape[0]):
                 box = self.target_boxes[i][j]
                 cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
