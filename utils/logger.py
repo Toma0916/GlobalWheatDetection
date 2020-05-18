@@ -131,11 +131,11 @@ class ImageStorage():
             image = self.images[i]
             for j in range(self.target_boxes[i].shape[0]):
                 box = self.target_boxes[i][j]
-                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
+                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
             for j in range(self.predict_boxes[i].shape[0]):
                 box = self.predict_boxes[i][j]
-                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
-                cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 220, 0), 2, cv2.LINE_AA)
+                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
+                cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 220/255, 0), 2, cv2.LINE_AA)
             id_image_dict[self.image_ids[i]] = image
         return id_image_dict    
 
@@ -207,7 +207,7 @@ class TensorBoardLogger:
 
         images = self.valid_predict_image_epoch_history.painted_images
         for key, value in images.items():
-            self.writer.add_image('valid/%s' % key, torch.FloatTensor(value), global_step=self.trained_epoch, dataformats='HWC')
+            self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':
