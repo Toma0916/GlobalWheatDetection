@@ -223,9 +223,8 @@ class TensorBoardLogger:
         self.valid_metric_epoch_history.send(score)
     
 
-    def send_images(self, images, image_ids, targets, outputs):
+    def send_images(self, images, image_ids, target_boxes, outputs):
         images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
-        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int) for target in targets]
         predict_boxes = [output['boxes'].detach().cpu().numpy() for output in outputs]
         predict_scores = [output['scores'].detach().cpu().numpy() for output in outputs]
         self.valid_predict_image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)

@@ -70,7 +70,7 @@ class Transform:
             ], 
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
         )
-        
+
         sample = albumentation_transforms(**sample)
         image = sample['image']
         target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
