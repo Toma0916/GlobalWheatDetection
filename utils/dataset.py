@@ -103,7 +103,7 @@ class GWDDataset(DatasetMixin):
         self.transform_config = config['train']['augment']
         self.bbox_filter_config = config['general']['bbox_filter']
 
-        transform = Transform(transform_config, is_train)
+        transform = Transform(self.transform_config, is_train)
         super(GWDDataset, self).__init__(transform=transform)
 
         self.image_ids = dataframe['image_id'].unique()
@@ -111,6 +111,7 @@ class GWDDataset(DatasetMixin):
         self.image_dir = image_dir
         self.indices = np.arange(len(self.image_ids))
         self.mosaic = False
+        self.img_size = 1024
 
 
     def __len__(self):

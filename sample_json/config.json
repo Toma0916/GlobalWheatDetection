@@ -41,9 +41,9 @@
                 "last_epoch": -1
             }
         },
-        "augument": {
+        "augment": {
             "mosaic": {
-                "p": 0.0
+                "p": 1.0
             },
             "horizontal_frip": {
                 "p": 1.0
