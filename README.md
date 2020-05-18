@@ -40,9 +40,24 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - PolyLR
   
 - augument
-  - random blur
-  - random brightness and contrast
-  -
+  - HorizontalFlip
+  - VerticalFlip
+  - Blur
+  - MotionBlur
+  - MedianBlur
+  - GaussianBlur
+  - OpticalDistortion
+  - GridDistortion
+  - ElasticTransform
+  - CLAHE
+  - ChannelShuffle
+  - RandomGamma
+  - HueSaturationValue
+  - RGBShift
+  - RandomContrast
+  - GaussNoise
+  - Cutout
+ 
  
 ## Requirement
 - numba=0.49.1 
