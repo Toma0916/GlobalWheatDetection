@@ -38,8 +38,12 @@
             }
         },
         "augument": {
-            "blur_p": 0.0,
-            "brightness_contrast_p": 0.0,
+            "horizontal_frip": {
+                "p": 1.0
+            },
+            "vertical_frip": {
+                "p": 1.0
+            },
             "test_time_augment": false
         }
     }
