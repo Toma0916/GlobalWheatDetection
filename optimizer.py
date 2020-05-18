@@ -53,11 +53,11 @@ from albumentations.core.transforms_interface import DualTransform
 
 
 
-
 def get_optimizer(config, parameters):
 
     optimizer_list = {
         'adam': torch.optim.Adam,
+        'sgd': torch.optim.SGD
     }
     
     assert config['name'] in optimizer_list.keys(), 'Optimizer\'s name is not valid. Available optimizes: %s' % str(list(optimizer_list.keys()))
