@@ -107,6 +107,46 @@ class MetricAverager:
         self.iterations = 0.0
 
 
+class ImageStorage():
+
+    def __init__(self):
+        self.image_ids = None
+        self.images = None
+        self.target_boxes = None
+        self.predict_boxes = None
+        self.predict_scores = None
+
+    def send(self, image_ids, images, target_boxes, predict_boxes, predict_scores):
+        self.image_ids = image_ids
+        self.images = images
+        self.target_boxes = target_boxes
+        self.predict_boxes = predict_boxes
+        self.predict_scores = predict_scores
+
+    @property
+    def painted_images(self):
+
+        id_image_dict = {}
+        for i in range(len(self.image_ids)):
+            image = self.images[i]
+            for j in range(self.target_boxes[i].shape[0]):
+                box = self.target_boxes[i][j]
+                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
+            for j in range(self.predict_boxes[i].shape[0]):
+                box = self.predict_boxes[i][j]
+                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
+                cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 1.2, (0, 220/255, 0), 2, cv2.LINE_AA)
+            id_image_dict[self.image_ids[i]] = image
+        return id_image_dict    
+
+    def reset(self):
+        self.image_ids = None
+        self.images = None
+        self.target_boxes = None
+        self.predict_boxes = None
+        self.predict_scores = None
+
+
 
 class TensorBoardLogger:
 
@@ -123,6 +163,7 @@ class TensorBoardLogger:
         self.train_loss_epoch_history = LossAverager()
         self.valid_loss_epoch_history = LossAverager()
         self.valid_metric_epoch_history = MetricAverager()
+        self.valid_predict_image_epoch_history = ImageStorage()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
 
@@ -164,6 +205,9 @@ class TensorBoardLogger:
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
         self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
 
+        images = self.valid_predict_image_epoch_history.painted_images
+        for key, value in images.items():
+            self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':
@@ -177,3 +221,11 @@ class TensorBoardLogger:
         score: float
         """
         self.valid_metric_epoch_history.send(score)
+    
+
+    def send_images(self, images, image_ids, targets, outputs):
+        images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
+        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int) for target in targets]
+        predict_boxes = [output['boxes'].detach().cpu().numpy() for output in outputs]
+        predict_scores = [output['scores'].detach().cpu().numpy() for output in outputs]
+        self.valid_predict_image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)
