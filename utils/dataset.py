@@ -102,8 +102,9 @@ class GWDDataset(DatasetMixin):
     def __init__(self, dataframe, image_dir, config=None, is_train=False):
         self.transform_config = config['train']['augment']
         self.bbox_filter_config = config['general']['bbox_filter']
-
-        transform = Transform(self.transform_config, is_train)
+        self.is_train = is_train
+        
+        transform = Transform(self.transform_config, self.is_train)
         super(GWDDataset, self).__init__(transform=transform)
 
         self.image_ids = dataframe['image_id'].unique()
@@ -137,7 +138,7 @@ class GWDDataset(DatasetMixin):
         self.mosaic = True if np.random.rand() < self.transform_config['mosaic']['p'] else False
         image_id = self.image_ids[self.indices[i]]
         target = {}
-        if self.mosaic:
+        if self.mosaic and self.is_train:
             image, labels_mosaic = load_mosaic(self, i)
             boxes = labels_mosaic[:, 1:]
 

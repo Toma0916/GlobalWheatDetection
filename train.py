@@ -69,6 +69,9 @@ def train_epoch():
     logger.start_train_epoch()
     for images, targets, image_ids in tqdm.tqdm(train_data_loader):
         images = list(image.float().to(device) for image in images)
+
+        # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
+        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
@@ -79,7 +82,7 @@ def train_epoch():
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
     
-    logger.send_images(images, image_ids, None, None)
+    logger.send_images(images, image_ids, target_boxes, None)
     logger.end_train_epoch()
 
 
