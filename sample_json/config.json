@@ -44,6 +44,15 @@
             "vertical_frip": {
                 "p": 1.0
             },
+            "motion_blur": {
+                "p": 1.0
+            },
+            "chennel_shufflle": {
+                "p": 1.0
+            },
+            "random_brightness": {
+                "p": 1.0
+            },
             "test_time_augment": false
         }
     }

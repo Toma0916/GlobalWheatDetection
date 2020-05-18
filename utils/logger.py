@@ -130,13 +130,14 @@ class ImageStorage():
         for i in range(len(self.image_ids)):
             image = self.images[i]
             image = cv2.UMat(image).get()
-            for j in range(self.target_boxes[i].shape[0]):
-                box = self.target_boxes[i][j]
-                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
-            for j in range(self.predict_boxes[i].shape[0]):
-                box = self.predict_boxes[i][j]
-                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
-                cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+            if (self.target_boxes is not None) and  (self.predict_boxes is not None) and  (self.predict_scores is not None):            
+                for j in range(self.target_boxes[i].shape[0]):
+                    box = self.target_boxes[i][j]
+                    cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
+                for j in range(self.predict_boxes[i].shape[0]):
+                    box = self.predict_boxes[i][j]
+                    cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
+                    cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
             id_image_dict[self.image_ids[i]] = image
         return id_image_dict    
 
@@ -164,7 +165,7 @@ class TensorBoardLogger:
         self.train_loss_epoch_history = LossAverager()
         self.valid_loss_epoch_history = LossAverager()
         self.valid_metric_epoch_history = MetricAverager()
-        self.valid_predict_image_epoch_history = ImageStorage()
+        self.image_epoch_history = ImageStorage()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
 
@@ -177,6 +178,7 @@ class TensorBoardLogger:
     def start_train_epoch(self):
         self.mode = 'train'
         self.train_loss_epoch_history.reset()
+        self.image_epoch_history .reset()
 
         # save leaering late for each epoch
         learning_rate = get_lr(self.optimizer)
@@ -188,6 +190,11 @@ class TensorBoardLogger:
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
         self.trained_epoch += 1
         self.trained_epoch_this_run += 1
+
+        if self.trained_epoch == 1:  # 最初のepochだけtrain画像を保存する
+            images = self.image_epoch_history.painted_images
+            for key, value in images.items():
+                self.writer.add_image('train/sample/%s' % (key), value, global_step=self.trained_epoch, dataformats='HWC')
         
         # save model snapshot
         if (self.trained_epoch_this_run - 1) % self.model_save_interval == 0:
@@ -199,14 +206,14 @@ class TensorBoardLogger:
         self.mode = 'valid'
         self.valid_loss_epoch_history.reset()
         self.valid_metric_epoch_history.reset()
+        self.image_epoch_history .reset()
 
 
     def end_valid_epoch(self):
         for key, value in self.valid_loss_epoch_history.value.items():
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
         self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
-
-        images = self.valid_predict_image_epoch_history.painted_images
+        images = self.image_epoch_history.painted_images
         for key, value in images.items():
             self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
 
@@ -224,8 +231,8 @@ class TensorBoardLogger:
         self.valid_metric_epoch_history.send(score)
     
 
-    def send_images(self, images, image_ids, target_boxes, outputs):
+    def send_images(self, images, image_ids, target_boxes=None, outputs=None):
         images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
-        predict_boxes = [output['boxes'].detach().cpu().numpy() for output in outputs]
-        predict_scores = [output['scores'].detach().cpu().numpy() for output in outputs]
-        self.valid_predict_image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)
+        predict_boxes = [output['boxes'].detach().cpu().numpy() for output in outputs] if (outputs is not None) else None
+        predict_scores = [output['scores'].detach().cpu().numpy() for output in outputs] if (outputs is not None) else None
+        self.image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)

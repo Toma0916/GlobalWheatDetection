@@ -78,7 +78,8 @@ def train_epoch():
 
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
-
+    
+    logger.send_images(images, image_ids, None, None)
     logger.end_train_epoch()
 
 
