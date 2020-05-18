@@ -107,31 +107,66 @@ class MetricAverager:
         self.iterations = 0.0
 
 
+class ImageStorage():
+
+    def __init__(self):
+        self.image_ids = None
+        self.images = None
+        self.target_boxes = None
+        self.predict_boxes = None
+        self.predict_scores = None
+
+    def send(self, image_ids, images, target_boxes, predict_boxes, predict_scores):
+        self.image_ids = image_ids
+        self.images = images
+        self.target_boxes = target_boxes
+        self.predict_boxes = predict_boxes
+        self.predict_scores = predict_scores
+
+    @property
+    def painted_images(self):
+
+        id_image_dict = {}
+        for i in range(len(self.image_ids)):
+            image = self.images[i]
+            image = cv2.UMat(image).get()
+            for j in range(self.target_boxes[i].shape[0]):
+                box = self.target_boxes[i][j]
+                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
+            for j in range(self.predict_boxes[i].shape[0]):
+                box = self.predict_boxes[i][j]
+                cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
+                cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+            id_image_dict[self.image_ids[i]] = image
+        return id_image_dict    
+
+    def reset(self):
+        self.image_ids = None
+        self.images = None
+        self.target_boxes = None
+        self.predict_boxes = None
+        self.predict_scores = None
+
+
 
 class TensorBoardLogger:
 
-    def __init__(self, model, optimizer, config):
+    def __init__(self, model, optimizer, output_dir, trained_epoch, model_save_interval):
 
         self.model = model 
         self.optimizer = optimizer
-        self.config = config
-
-        self.trained_epoch = config['trained_epoch']
-        self.trained_iter = config['trained_iter']
+        self.trained_epoch = trained_epoch
         self.trained_epoch_this_run = 0
-        self.model_save_range = config['model_save_range']
-        self.experiment_name = Path(config['output_dir']).name  # 保存するディレクトリ名を一致させる
-        self.save_dir = Path(config['output_dir'])
-
-        assert os.path.exists(str(self.save_dir))  is False
-        os.makedirs(str(self.save_dir), exist_ok=False)
+        self.model_save_interval = model_save_interval
+        self.experiment_name = output_dir.name  # 保存するディレクトリ名を一致させる
+        self.save_dir = output_dir
 
         self.train_loss_epoch_history = LossAverager()
         self.valid_loss_epoch_history = LossAverager()
         self.valid_metric_epoch_history = MetricAverager()
+        self.valid_predict_image_epoch_history = ImageStorage()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
-        self.log_configs(config)
 
         self.mode = 'train'
 
@@ -155,7 +190,7 @@ class TensorBoardLogger:
         self.trained_epoch_this_run += 1
         
         # save model snapshot
-        if (self.trained_epoch_this_run - 1) % self.model_save_range == 0:
+        if (self.trained_epoch_this_run - 1) % self.model_save_interval == 0:
             filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
             torch.save(self.model.state_dict(), filepath)
 
@@ -171,6 +206,9 @@ class TensorBoardLogger:
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
         self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
 
+        images = self.valid_predict_image_epoch_history.painted_images
+        for key, value in images.items():
+            self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':
@@ -184,20 +222,10 @@ class TensorBoardLogger:
         score: float
         """
         self.valid_metric_epoch_history.send(score)
-
-
-    def log_configs(self, config):
-
-        # save config
-        with open(self.save_dir/'train_config.json', 'w') as f:
-            json.dump(config, f)
-
-        for key, value in config.items():
-            if 'train-' in key:
-                key = key.replace('train-', 'train_augument/')
-            elif 'valid-' in key:
-                key = key.replace('valid-', 'valid_augument/')
-            else:
-                key = 'general/%s' % key
-            self.writer.add_text('config/%s' % key, str(value))
     
+
+    def send_images(self, images, image_ids, target_boxes, outputs):
+        images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
+        predict_boxes = [output['boxes'].detach().cpu().numpy() for output in outputs]
+        predict_scores = [output['scores'].detach().cpu().numpy() for output in outputs]
+        self.valid_predict_image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)

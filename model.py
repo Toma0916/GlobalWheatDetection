@@ -50,11 +50,14 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 
-def get_fasterrcnn_model(backborn, class_num=2, pretrained=True):
+def fasterrcnn_model(backborn, class_num=2, pretrained=True):
 
-    if backborn == 'fasterrcnn_resnet50_fpn':
-        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=pretrained)
+    backborn_list = {
+        'fasterrcnn_resnet50_fpn': torchvision.models.detection.fasterrcnn_resnet50_fpn
+    }
 
+    assert backborn in backborn_list.keys(), 'Backborn\'s name is not valid. Available backborns: %s' % str(list(backborn_list.keys()))
+    model = backborn_list[backborn](pretrained=pretrained)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, class_num)
     return model 
@@ -63,8 +66,10 @@ def get_fasterrcnn_model(backborn, class_num=2, pretrained=True):
 
 def get_model(config):
 
-    if config['model_name'] == 'fasterrcnn':
-        model = get_fasterrcnn_model(backborn=config['model_backborn'],
-                                     pretrained=config['model_pretrained'])
-    
+    model_list = {
+        'faster_rcnn': fasterrcnn_model,
+    }
+
+    assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
+    model = model_list[config['name']](**config['config'])
     return model

@@ -46,10 +46,14 @@ from albumentations.pytorch.transforms import ToTensorV2
 
 class Transform:
 
-    def __init__(self, config):
+    def __init__(self, config, is_train):
 
-        self.blur_p =  config["blur_p"]  # blutをかける確率
-        self.brightness_contrast_p =  config["brightness_contrast_p"]  # brightness contrastを調整する確率
+        if is_train or config['test_time_augment']:
+            self.blur_p =  config['blur_p']  # blutをかける確率
+            self.brightness_contrast_p =  config['brightness_contrast_p']  # brightness contrastを調整する確率
+        else:
+            self.blur_p = 0.0
+            self.brightness_contrast_p = 0.0
 
     def __call__(self, example):
 
@@ -66,7 +70,7 @@ class Transform:
             ], 
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
         )
-        
+
         sample = albumentation_transforms(**sample)
         image = sample['image']
         target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)

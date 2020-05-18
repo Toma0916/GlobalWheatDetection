@@ -9,6 +9,7 @@ import six
 import json
 import time
 import datetime
+import shutil
 from logging import getLogger
 from time import perf_counter
 import warnings
@@ -79,16 +80,19 @@ def train_epoch():
 
     logger.end_train_epoch()
 
+
 def evaluate_epoch():
 
     logger.start_valid_epoch()
     with torch.no_grad():
-
         for images, targets, image_ids in valid_data_loader:
             model.train()
             optimizer.zero_grad()
             images = list(image.float().to(device) for image in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+
+            # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
+            target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
             loss_dict = model(images, targets)
             loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
             logger.send_loss(loss_dict_detach) 
@@ -99,7 +103,31 @@ def evaluate_epoch():
             matric_score = calculate_score(outputs, targets)
             logger.send_score(matric_score)
 
+    # 最後のevalのloopで生成されたものを保存する
+    logger.send_images(images, image_ids, target_boxes, outputs)
     logger.end_valid_epoch()
+
+
+def update_dict(d, keys, value):
+        if len(keys) == 1:
+            d[keys[0]] = value 
+        else:
+            update_dict(d[keys[0]], keys[1:], value)
+
+
+def expand_json(d, keys=[]):
+    for key in d.keys():
+        if key == 'tuple':
+            update_value = tuple([v for v in d[key].values()])
+            update_dict(config, keys, update_value)
+            continue
+        elif key == 'list':
+            update_value = list([v for v in d[key].values()])
+            update_dict(config, keys, update_value)
+            continue
+        elif type(d[key]) is dict:
+            expand_json(d[key], keys=keys+[key])
+    return d
 
 
 if __name__ == '__main__':
@@ -107,117 +135,44 @@ if __name__ == '__main__':
     now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     parser = argparse.ArgumentParser()
-
-    # --- general ---
-    parser.add_argument('--debug', action='store_true')
-    parser.add_argument('--output_dir', default=now)
-    parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--model_save_interval', type=int, default=5)
-
-    # --- model ---
-    parser.add_argument('--model_name', type=str, default='fasterrcnn')  
-    parser.add_argument('--model_backborn', type=str, default='') 
-    parser.add_argument('--model_not_pretrained', action='store_false')  
-
-    # --- train ---
-    parser.add_argument('--batch_size', type=int, default=8)
-    parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--optimizer_name', type=str, default='adam')
-    parser.add_argument('--lr', type=float, default=0.0001)
-    parser.add_argument('--b1', type=float, default=0.5)
-    parser.add_argument('--b2', type=float, default=0.999)
-    parser.add_argument('--scheduler_name', type=str, default='')
-
-    # --- argument ---
-    parser.add_argument('--blur_p', type=float, default=1.0)
-    parser.add_argument('--brightness_contrast_p', type=float, default=1.0)
-    parser.add_argument('--test_time_augment', action='store_true')
-
+    parser.add_argument('--json_path')
     args = parser.parse_args()
+
+    assert os.path.exists(args.json_path), "json\'s name '%s' is not valid." % args.json_path
+
+    with open(args.json_path, 'r') as f:
+        config = json.load(f)
+    config = expand_json(config)
 
     SRC_DIR = Path('.').resolve()/'src'
     TRAIN_IMAGE_DIR = SRC_DIR/'train'
     TEST_IMAGE_DIR= SRC_DIR/'test'
     DATAFRAME = convert_dataframe( pd.read_csv(str(SRC_DIR/'train.csv')))
-    OUTPUT_DIR = Path('.').resolve()/'output'/args.output_dir
+    OUTPUT_DIR = Path('.').resolve()/'output'/config['general']['output_dirname']
 
     device = torch.device('cuda:0')
 
     if os.path.exists(OUTPUT_DIR):
+        print('[WIP]: reload weights. Execute sys.exit().')
         sys.exit()  # [WIP]: reload weights
     else:
-        debug = args.debug
-        random_seed = args.seed
-        model_save_interval = args.model_save_interval
-        model_name = args.model_name
-        model_backborn = args.model_backborn
-        if model_backborn == '':
-            if model_name == 'fasterrcnn':
-                model_backborn = 'fasterrcnn_resnet50_fpn'
-        model_pretrained = args.model_not_pretrained
-        batch_size = args.batch_size
-        epochs = args.epochs
-        optimizer_name = args.optimizer_name
-        initial_lr = args.lr
-        b1 = args.b1
-        b2 = args.b2
-        scheduler_name = args.scheduler_name
-        blur_p = args.blur_p
-        brightness_contrast_p = args.brightness_contrast_p
-        test_time_augment = args.test_time_augment
- 
+
+        # copy json to output dir
+        os.makedirs(str(OUTPUT_DIR), exist_ok=False)
+        shutil.copy(args.json_path , str(OUTPUT_DIR/"config.json"))
+
+        debug = config['debug']
+        random_seed = config['general']['seed']
+        model_save_interval = config['general']['model_save_interval']
         trained_epoch = 0
         trained_iter = 0
         trained_weights_path = None        
     
-    train_config = {
-        'debug': debug,
-        'output_dir': str(OUTPUT_DIR),
-        'random_seed': random_seed,
-        'model_save_range': model_save_interval,
-        'model_name': model_name,
-        'model_backborn': model_backborn,
-        'model_pretrained': model_pretrained,
-        'batch_size': batch_size,
-        'epochs': epochs,
-        'optimizer_name': optimizer_name,
-        'initial_lr': initial_lr,
-        'b1': b1, 
-        'b2': b2,
-        'scheduler_name': scheduler_name,
-        'trained_epoch': trained_epoch,
-        'trained_iter': trained_iter,
-        'trained_weights_path': trained_weights_path if trained_weights_path else "",
-        'test_time_augment': test_time_augment,
-        'datetime': now
-    }
-
-    train_augment_config = {
-        'blur_p': blur_p,
-        'brightness_contrast_p': brightness_contrast_p,
-    }
-
-    if test_time_augment:
-        valid_augment_config = train_augment_config
-    else:
-        valid_augment_config = {
-            'blur_p': 0.,
-            'brightness_contrast_p': 0.,
-        }
-
     # set seed (not enough for complete reproducibility)
     random.seed(random_seed)  
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)  
     torch.cuda.manual_seed(random_seed)  
-    
-    # config for logging
-    config = train_config
-    for key, value in train_augment_config.items():
-        config['train-' + key] = value
-    for key, value in valid_augment_config.items():
-        config['valid-' + key] = value
-
     
     # prepare for training
     image_ids = DATAFRAME['image_id'].unique()
@@ -233,23 +188,23 @@ if __name__ == '__main__':
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
 
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(train_augment_config))
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(valid_augment_config))
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=True))
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augument'], is_train=False))
 
-    train_data_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
 
     # load model and make parallel
-    model = get_model(config).to(device)
+    model = get_model(config['model']).to(device)
     # model = torch.nn.DataParallel(model) 
     trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = get_optimizer(config, trainable_params)
-    scheduler = get_scheduler(config, optimizer)
+    optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
+    scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
-    logger = TensorBoardLogger(model, optimizer, config)
+    logger = TensorBoardLogger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, model_save_interval=model_save_interval)
 
     # training
-    for epoch in range(trained_epoch+1, epochs+1):
+    for epoch in range(trained_epoch+1, config['train']['epochs']+1):
 
         print("\r [Epoch %d]" % epoch)
 
