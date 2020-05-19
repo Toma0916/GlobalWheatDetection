@@ -42,9 +42,6 @@
             }
         },
         "augment": {
-            "mosaic": {
-                "p": 1.0
-            },
             "test_time_augment": false
         }
     }
