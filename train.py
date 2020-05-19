@@ -196,8 +196,8 @@ if __name__ == '__main__':
     train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, config, is_train=True)
     valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, config, is_train=False)
 
-    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, collate_fn=collate_fn)
-    valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=1, collate_fn=collate_fn)
+    valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=1, collate_fn=collate_fn)
 
     # load model and make parallel
     model = get_model(config['model']).to(device)
