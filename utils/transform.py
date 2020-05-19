@@ -76,22 +76,17 @@ def moisac(image_list, target_list, image_id_list):
         elif i == 3:  # bottom right
             x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2, yc + h)
             x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
-        
 
-        # print(x1a, y1a, x2a, y2a)
-        # print(x1b, y1b, x2b, y2b)
         img4[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]  # img4[ymin:ymax, xmin:xmax]
         padw = x1a - x1b
         padh = y1a - y1b
 
-        # Labels
+        # calculate coco bounding box
         boxes_pascalvoc = target_list[i]['boxes']
         boxes_coco = []
         for box in boxes_pascalvoc:
             b_x1, b_y1, b_x2, b_y2 = box
-            # xc, yc, w, h = 0.5*x1/s+0.5*x2/s, 0.5*y1/s+0.5*y2/s, abs(x2/s-x1/s), abs(y2/s-y1/s)
             b_xc, b_yc, b_w, b_h = 0.5*b_x1/s+0.5*b_x2/s, 0.5*b_y1/s+0.5*b_y2/s, abs(b_x2/s-b_x1/s), abs(b_y2/s-b_y1/s)
-
             boxes_coco.append([b_xc, b_yc, b_w, b_h])
         boxes_coco = np.array(boxes_coco)
 
@@ -102,15 +97,14 @@ def moisac(image_list, target_list, image_id_list):
             boxes[:, 1] = h * (x[:, 1] - x[:, 3] / 2) + padh
             boxes[:, 2] = w * (x[:, 0] + x[:, 2] / 2) + padw
             boxes[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh
-        
         boxes4.append(boxes)
 
     # Concat/clip labels
     if len(boxes4):
         boxes4 = np.concatenate(boxes4, 0)
-        boxes4 = np.clip(boxes4, 0, 2 * s)  # use with random_affine
+        boxes4 = np.clip(boxes4, 0, 2 * s) 
         boxes4 = np.array([box/2. for box in boxes4 if ((box[0]+1 < box[2]) and (box[1]+1 < box[3]))])  # resize and remove outliers
-    img4 = cv2.resize(img4, (s, s), interpolation=cv2.INTER_LINEAR)  # resize image
+    img4 = cv2.resize(img4, (s, s), interpolation=cv2.INTER_LINEAR)  # resize image by `INTER_LINEAR`
     return img4, boxes4, joined_image_id
 
 
@@ -158,7 +152,6 @@ class Transform:
             self.gaussian_noise = config['gaussian_noise'] if ('gaussian_noise' in config) else {'p': 0.0}
             self.cutout = config['cutout'] if ('cutout' in config) else {'p': 0.0}
 
-
         else:
             self.mosaic = {'p': 0.0}
             self.horizontal_flip = {'p': 0.0}
@@ -182,6 +175,7 @@ class Transform:
             self.gaussian_noise = {'p': 0.0}
             self.cutout = {'p': 0.0}
 
+
     def __call__(self, example, dataset):
 
         image, target, image_id = example
@@ -189,9 +183,8 @@ class Transform:
         # mosaic
         if np.random.rand() < self.mosaic['p']:
 
-            # get other images id
-            mosaic_source_numberes = np.random.choice(np.arange(len(dataset.image_ids)), 3, replace=False)
-            mosaic_image_sources = [dataset.get_example(i) for i in mosaic_source_numberes]
+            # get other datas from dataset (for mosaic)
+            mosaic_image_sources = [dataset.get_example(i) for i in np.random.choice(np.arange(len(dataset.image_ids)), 3, replace=False)]
 
             image_list = [image]
             target_list = [target]
@@ -201,22 +194,23 @@ class Transform:
                 target_list.append(source[1])
                 image_id_list.append(source[2])
             
+            # apply mosaic
             image, boxes, image_id = moisac(image_list, target_list, image_id_list)
-            # print(boxes)
-            # print(image_id)
 
+            # recalculate area and label and iscrowed
             area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
             area = torch.as_tensor(area, dtype=torch.float32)
-
             labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
             iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
 
             target['boxes'] = boxes
             target['labels'] = labels
-            # target['image_id'] = torch.tensor([image_id])  # too longer errorになるためbase image idを流す
+            # target['image_id'] = torch.tensor([image_id])  # use base image image_id (concat image_id raise length is too long error)
             target['area'] = area
             target['iscrowd'] = iscrowd
 
+
+        # for albumentation transforms
         sample = {
             'image': image,
             'bboxes': target['boxes'],
