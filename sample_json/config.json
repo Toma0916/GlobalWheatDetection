@@ -12,7 +12,7 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backborn": "fasterrcnn_resnet50_fpn",
+            "backbone": "fasterrcnn_resnet50_fpn",
             "class_num": 2,
             "pretrained": true
         }
