@@ -140,7 +140,7 @@ if __name__ == '__main__':
     now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--json_path')
+    parser.add_argument('json_path')
     args = parser.parse_args()
 
     assert os.path.exists(args.json_path), "json\'s name '%s' is not valid." % args.json_path
