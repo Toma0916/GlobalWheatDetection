@@ -59,7 +59,7 @@ def get_filtered_bboxes(target, threshold, max_or_min):
     if max: max_or_min = 1
     if min: max_or_min = -1   
     """
-    filtered = (max_or_min * target['area']) < (max_or_min * threshold)
+    filtered = ((max_or_min * target['area']) < (max_or_min * threshold)).numpy()
     target_filtered = {'boxes': target['boxes'][filtered], 
                        'labels': target['labels'][filtered],
                        'area': target['area'][filtered],
