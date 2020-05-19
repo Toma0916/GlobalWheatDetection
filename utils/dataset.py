@@ -152,7 +152,7 @@ class GWDDataset(DatasetMixin):
 
         # get another sample if number of bounding boxes is zero
         if len(target['boxes']) == 0:
-            return get_example(np.random.randint(0, len(self)))
+            return self.get_example(np.random.randint(0, len(self)))
 
         return image, target, image_id
 
