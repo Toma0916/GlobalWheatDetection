@@ -11,6 +11,7 @@ import time
 import datetime
 import shutil
 import tqdm
+import copy
 from logging import getLogger
 from time import perf_counter
 import warnings
@@ -97,7 +98,8 @@ def evaluate_epoch():
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
-            target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
+            targets_copied = copy.deepcopy(targets)
+            target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
             loss_dict = model(images, targets)
             loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
             logger.send_loss(loss_dict_detach) 
@@ -105,7 +107,7 @@ def evaluate_epoch():
             # Start calculating scores for competition
             model.eval()
             outputs = model(images)
-            matric_score = calculate_score(outputs, targets)
+            matric_score = calculate_score(outputs, targets_copied)
             logger.send_score(matric_score)
 
     # 最後のevalのloopで生成されたものを保存する
