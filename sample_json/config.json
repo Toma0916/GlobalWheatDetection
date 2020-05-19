@@ -45,21 +45,6 @@
             "mosaic": {
                 "p": 1.0
             },
-            "horizontal_frip": {
-                "p": 1.0
-            },
-            "vertical_frip": {
-                "p": 1.0
-            },
-            "motion_blur": {
-                "p": 1.0
-            },
-            "channel_shuffle": {
-                "p": 1.0
-            },
-            "random_brightness": {
-                "p": 1.0
-            },
             "test_time_augment": false
         }
     }
