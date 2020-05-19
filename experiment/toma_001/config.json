@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "toma/exp_1",
+        "output_dirname": "toma/exp_001",
         "seed": 42,
         "model_save_interval": 10,
         "bbox_filter": {
