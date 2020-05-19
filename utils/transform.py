@@ -44,6 +44,70 @@ from albumentations.core.transforms_interface import DualTransform
 from albumentations.pytorch.transforms import ToTensorV2
 
 
+
+def moisac(image_list, target_list, image_id_list):
+
+    s = 1024
+    h = 1024
+    w = 1024
+
+    boxes4 = []
+    joined_image_id = '_'.join(image_id_list)
+
+    xc, yc = [int(random.uniform(s * 0.5, s * 1.5)) for _ in range(2)]  # mosaic center x, y
+
+    for i in range(len(image_list)):
+
+        img = image_list[i]               
+        image_id = image_id_list[i]
+
+        # Load image
+        # place img in img4
+        if i == 0:  # top left
+            img4 = np.full((s * 2, s * 2, img.shape[2]), 114.0/255.0, dtype=np.float32)  # base image with 4 tiles
+            x1a, y1a, x2a, y2a = max(xc - w, 0), max(yc - h, 0), xc, yc  # xmin, ymin, xmax, ymax (large image)
+            x1b, y1b, x2b, y2b = w - (x2a - x1a), h - (y2a - y1a), w, h  # xmin, ymin, xmax, ymax (small image)
+        elif i == 1:  # top right
+            x1a, y1a, x2a, y2a = xc, max(yc - h, 0), min(xc + w, s * 2), yc
+            x1b, y1b, x2b, y2b = 0, h - (y2a - y1a), min(w, x2a - x1a), h
+        elif i == 2:  # bottom left
+            x1a, y1a, x2a, y2a = max(xc - w, 0), yc, xc, min(s * 2, yc + h)
+            x1b, y1b, x2b, y2b = w - (x2a - x1a), 0, max(xc, w), min(y2a - y1a, h)
+        elif i == 3:  # bottom right
+            x1a, y1a, x2a, y2a = xc, yc, min(xc + w, s * 2), min(s * 2, yc + h)
+            x1b, y1b, x2b, y2b = 0, 0, min(w, x2a - x1a), min(y2a - y1a, h)
+
+        img4[y1a:y2a, x1a:x2a] = img[y1b:y2b, x1b:x2b]  # img4[ymin:ymax, xmin:xmax]
+        padw = x1a - x1b
+        padh = y1a - y1b
+
+        # calculate coco bounding box
+        boxes_pascalvoc = target_list[i]['boxes']
+        boxes_coco = []
+        for box in boxes_pascalvoc:
+            b_x1, b_y1, b_x2, b_y2 = box
+            b_xc, b_yc, b_w, b_h = 0.5*b_x1/s+0.5*b_x2/s, 0.5*b_y1/s+0.5*b_y2/s, abs(b_x2/s-b_x1/s), abs(b_y2/s-b_y1/s)
+            boxes_coco.append([b_xc, b_yc, b_w, b_h])
+        boxes_coco = np.array(boxes_coco)
+
+        x = boxes_coco
+        boxes = x.copy()
+        if x.size > 0:  # Normalized xywh to pixel xyxy format
+            boxes[:, 0] = w * (x[:, 0] - x[:, 2] / 2) + padw
+            boxes[:, 1] = h * (x[:, 1] - x[:, 3] / 2) + padh
+            boxes[:, 2] = w * (x[:, 0] + x[:, 2] / 2) + padw
+            boxes[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh
+        boxes4.append(boxes)
+
+    # Concat/clip labels
+    if len(boxes4):
+        boxes4 = np.concatenate(boxes4, 0)
+        boxes4 = np.clip(boxes4, 0, 2 * s) 
+        boxes4 = np.array([box/2. for box in boxes4 if ((box[0]+1 < box[2]) and (box[1]+1 < box[3]))])  # resize and remove outliers
+    img4 = cv2.resize(img4, (s, s), interpolation=cv2.INTER_LINEAR)  # resize image by `INTER_LINEAR`
+    return img4, boxes4, joined_image_id
+
+
 class Transform:
     """
     https://github.com/katsura-jp/tour-of-albumentations 参考
@@ -52,6 +116,9 @@ class Transform:
     def __init__(self, config, is_train):
 
         if is_train or config['test_time_augment']:
+
+            # mosaic
+            self.mosaic = config['mosaic'] if ('mosaic' in config) else {'p': 0.0}
 
             # flip系
             self.horizontal_flip = config['horizontal_flip'] if ('horizontal_flip' in config) else {'p': 0.0}
@@ -85,8 +152,8 @@ class Transform:
             self.gaussian_noise = config['gaussian_noise'] if ('gaussian_noise' in config) else {'p': 0.0}
             self.cutout = config['cutout'] if ('cutout' in config) else {'p': 0.0}
 
-
         else:
+            self.mosaic = {'p': 0.0}
             self.horizontal_flip = {'p': 0.0}
             self.vertical_flip = {'p': 0.0} 
             self.random_rotate_90 = {'p': 0.0}
@@ -108,10 +175,42 @@ class Transform:
             self.gaussian_noise = {'p': 0.0}
             self.cutout = {'p': 0.0}
 
-    def __call__(self, example):
+
+    def __call__(self, example, dataset):
 
         image, target, image_id = example
 
+        # mosaic
+        if np.random.rand() < self.mosaic['p']:
+
+            # get other datas from dataset (for mosaic)
+            mosaic_image_sources = [dataset.get_example(i) for i in np.random.choice(np.arange(len(dataset.image_ids)), 3, replace=False)]
+
+            image_list = [image]
+            target_list = [target]
+            image_id_list = [image_id]
+            for source in mosaic_image_sources:
+                image_list.append(source[0])
+                target_list.append(source[1])
+                image_id_list.append(source[2])
+            
+            # apply mosaic
+            image, boxes, image_id = moisac(image_list, target_list, image_id_list)
+
+            # recalculate area and label and iscrowed
+            area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+            area = torch.as_tensor(area, dtype=torch.float32)
+            labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+            iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+            target['boxes'] = boxes
+            target['labels'] = labels
+            # target['image_id'] = torch.tensor([image_id])  # use base image image_id (concat image_id raise length is too long error)
+            target['area'] = area
+            target['iscrowd'] = iscrowd
+
+
+        # for albumentation transforms
         sample = {
             'image': image,
             'bboxes': target['boxes'],

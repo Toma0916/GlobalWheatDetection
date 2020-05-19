@@ -69,6 +69,9 @@ def train_epoch():
     logger.start_train_epoch()
     for images, targets, image_ids in tqdm.tqdm(train_data_loader):
         images = list(image.float().to(device) for image in images)
+
+        # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
+        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
@@ -79,7 +82,7 @@ def train_epoch():
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
     
-    logger.send_images(images, image_ids, None, None)
+    logger.send_images(images, image_ids, target_boxes, None)
     logger.end_train_epoch()
 
 
@@ -137,7 +140,7 @@ if __name__ == '__main__':
     now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--json_path')
+    parser.add_argument('json_path')
     args = parser.parse_args()
 
     assert os.path.exists(args.json_path), "json\'s name '%s' is not valid." % args.json_path
@@ -190,11 +193,15 @@ if __name__ == '__main__':
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
 
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augment'], is_train=True), config['general']['bbox_filter'])
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, Transform(config['train']['augment'], is_train=False), config['general']['bbox_filter'])
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, config, is_train=True)
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, config, is_train=False)
 
-    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, collate_fn=collate_fn)
-    valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, collate_fn=collate_fn)
+    def worker_init_fn(worker_id):   
+        random.seed(worker_id+random_seed)   
+        np.random.seed(worker_id+random_seed)   
+
+    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # load model and make parallel
     model = get_model(config['model']).to(device)

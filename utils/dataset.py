@@ -43,6 +43,7 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 from utils.functions import convert_dataframe, filter_bboxes_by_size
+from utils.transform import Transform
 
 
 def collate_fn(batch):
@@ -78,7 +79,7 @@ class DatasetMixin(Dataset):
         """Wrapper of `get_example`, to apply `transform` if necessary"""
         example = self.get_example(i)
         if self.transform:
-            example = self.transform(example)  
+            example = self.transform(example, self)  
         return example
 
 
@@ -98,23 +99,32 @@ class DatasetMixin(Dataset):
 
 class GWDDataset(DatasetMixin):
 
-    def __init__(self, dataframe, image_dir, transform=None, bbox_filter_config=None):
-        
-        super(GWDDataset, self).__init__(transform=transform)
+    def __init__(self, dataframe, image_dir, config=None, is_train=False):
 
+        self.transform_config = config['train']['augment']
+        self.bbox_filter_config = config['general']['bbox_filter']
+        self.is_train = is_train
+        
         self.image_ids = dataframe['image_id'].unique()
         self.df = dataframe
         self.image_dir = image_dir
         self.indices = np.arange(len(self.image_ids))
-        self.bbox_filter_config = bbox_filter_config
+        self.image_size = 1024
 
+        transform = Transform(self.transform_config, self.is_train)
+        super(GWDDataset, self).__init__(transform=transform)
 
+     
     def __len__(self):
         """return length of this dataset"""
         return len(self.indices)
-
+    
     
     def get_example(self, i):
+
+        im_h = self.image_size
+        im_w = self.image_size
+
         image_id = self.image_ids[self.indices[i]]
         records = self.df[self.df['image_id'] == image_id]
 

@@ -130,10 +130,11 @@ class ImageStorage():
         for i in range(len(self.image_ids)):
             image = self.images[i]
             image = cv2.UMat(image).get()
-            if (self.target_boxes is not None) and  (self.predict_boxes is not None) and  (self.predict_scores is not None):            
+            if self.target_boxes is not None:            
                 for j in range(self.target_boxes[i].shape[0]):
                     box = self.target_boxes[i][j]
                     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
+            if (self.predict_boxes is not None) and (self.predict_scores is not None):            
                 for j in range(self.predict_boxes[i].shape[0]):
                     box = self.predict_boxes[i][j]
                     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
