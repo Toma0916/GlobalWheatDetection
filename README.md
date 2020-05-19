@@ -57,6 +57,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - RandomContrast
   - GaussNoise
   - Cutout
+  - Mosaic
  
  
 ## Requirement
