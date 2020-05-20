@@ -151,6 +151,7 @@ class GWDDataset(DatasetMixin):
         target['image_id'] = torch.tensor([self.indices[i]])
         target['area'] = area
         target['iscrowd'] = iscrowd
+        target['source'] = self.sources[image_id]
 
         if not 'valid' in self.config.keys():
             self.config['valid'] = {'apply_bbox_filter': False}
