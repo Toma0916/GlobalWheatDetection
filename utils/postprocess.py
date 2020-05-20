@@ -72,7 +72,7 @@ def filter_score(outputs, threshold_score):
         filtered_output['scores'] = np.array(filtered_output['scores'])
 
         # 処理によりboxが極端に減る場合は処理をスキップ
-        if filtered_output['boxes'].shape[0] < 5:
+        if filtered_output['boxes'].shape[0] < 8:
             continue
 
         outputs[i] = filtered_output
