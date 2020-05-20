@@ -115,6 +115,8 @@ class GWDDataset(DatasetMixin):
         transform = Transform(self.transform_config, self.is_train)
         super(GWDDataset, self).__init__(transform=transform)
 
+        dff = self.df[['image_id', 'source']].drop_duplicates()
+        self.sources = dict(zip(dff.image_id, dff.source))
      
     def __len__(self):
         """return length of this dataset"""
@@ -149,6 +151,7 @@ class GWDDataset(DatasetMixin):
         target['image_id'] = torch.tensor([self.indices[i]])
         target['area'] = area
         target['iscrowd'] = iscrowd
+        target['source'] = self.sources[image_id]
 
         if not 'valid' in self.config.keys():
             self.config['valid'] = {'apply_bbox_filter': False}
