@@ -148,7 +148,9 @@ class GWDDataset(DatasetMixin):
         target['image_id'] = torch.tensor([self.indices[i]])
         target['area'] = area
         target['iscrowd'] = iscrowd
-        target = filter_bboxes_by_size(target, self.bbox_filter_config)
+        
+        if is_train:
+            target = filter_bboxes_by_size(target, self.bbox_filter_config)
 
         # get another sample if number of bounding boxes is zero
         if len(target['boxes']) == 0:
