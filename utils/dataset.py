@@ -115,6 +115,8 @@ class GWDDataset(DatasetMixin):
         transform = Transform(self.transform_config, self.is_train)
         super(GWDDataset, self).__init__(transform=transform)
 
+        dff = self.df[['image_id', 'source']].drop_duplicates()
+        self.sources = dict(zip(dff.image_id, dff.source))
      
     def __len__(self):
         """return length of this dataset"""

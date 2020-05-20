@@ -32,6 +32,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.nn import Sequential
 from torch.autograd import Variable
+from torch.utils.data import WeightedRandomSampler
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -62,6 +63,7 @@ from utils.transform import Transform
 from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
+from utils.sampler import get_sampler
 
 
 def train_epoch():
@@ -202,6 +204,7 @@ if __name__ == '__main__':
         random.seed(worker_id+random_seed)   
         np.random.seed(worker_id+random_seed)   
 
+    train_sampler = get_sampler(train_dataset)
     train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
