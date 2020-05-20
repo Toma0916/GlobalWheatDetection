@@ -161,6 +161,7 @@ class WarmupCosineAnnealingLR(torch.optim.lr_scheduler._LRScheduler):
                 for base_lr in self.base_lrs]
 
 
+
 class PiecewiseCyclicalLinearLR(torch.optim.lr_scheduler._LRScheduler):
     """Set the learning rate of each parameter group using piecewise
     cyclical linear schedule.
@@ -228,11 +229,11 @@ def exponential_scheduler(optimizer, gamma=0.95):
 def cosine_annealing_scheduler(optimizer, T_max=20, eta_min=0.001):
     return torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,  T_max, eta_min)
 
-def warmup_multistep(optimizer, milestones=[10, 30, 50], gamma=0.1, warmup_factor=1.0/3, warmup_iters=500, warmup_method="linear"):
-    return WarmupMultiStepLR(optimizer, milestones, gamma, warmup_factor, warmup_iters, warmup_method)
+def warmup_multistep(optimizer, milestones=[10, 30, 50], gamma=0.1, warmup_factor=1.0/3, warmup_iters=500, warmup_method="linear", last_epoch=-1):
+    return WarmupMultiStepLR(optimizer, milestones, gamma, warmup_factor, warmup_iters, warmup_method, last_epoch)
 
-def warmup_cosine_annealing_scheduler(optimizer, T_max=100, eta_min=1e-6, warmup_factor=1.0 / 3, warmup_iters=10):
-    return WarmupCosineAnnealingLR(optimizer, T_max, eta_min, warmup_factor, warmup_iters)
+def warmup_cosine_annealing_scheduler(optimizer, T_max=100, eta_min=1e-6, warmup_factor=1.0 / 3, warmup_iters=10, warmup_method="linear", last_epoch=-1):
+    return WarmupCosineAnnealingLR(optimizer, T_max, eta_min, warmup_factor, warmup_iters, warmup_method, last_epoch)
 
 def piecewise_cyclical_linear_scheduler(optimizer, c=10, alpha1=1e-2, alpha2=5e-4, last_epoch=-1):
     return PiecewiseCyclicalLinearLR(optimizer, c, alpha1, alpha2, last_epoch)
