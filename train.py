@@ -62,6 +62,7 @@ from utils.transform import Transform
 from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
+from utils.postprocess import postprocessing
 
 
 def train_epoch():
@@ -107,6 +108,7 @@ def evaluate_epoch():
             # Start calculating scores for competition
             model.eval()
             outputs = model(images)
+            outputs = postprocessing(outputs, config["valid"])
             matric_score = calculate_score(outputs, targets_copied)
             logger.send_score(matric_score)
 

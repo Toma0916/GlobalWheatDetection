@@ -234,6 +234,6 @@ class TensorBoardLogger:
 
     def send_images(self, images, image_ids, target_boxes=None, outputs=None):
         images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
-        predict_boxes = [output['boxes'].detach().cpu().numpy() for output in outputs] if (outputs is not None) else None
-        predict_scores = [output['scores'].detach().cpu().numpy() for output in outputs] if (outputs is not None) else None
+        predict_boxes = [output['boxes'] for output in outputs] if (outputs is not None) else None
+        predict_scores = [output['scores'] for output in outputs] if (outputs is not None) else None
         self.image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)

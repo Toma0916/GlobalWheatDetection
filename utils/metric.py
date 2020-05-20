@@ -191,7 +191,7 @@ def calculate_score(outputs, targets):
         iou_thresholds.append(x)
     image_precisions = np.zeros(len(outputs))
     for i in range(len(outputs)):
-        image_precision = calculate_image_precision(outputs[i]['boxes'].data.cpu().numpy(),
+        image_precision = calculate_image_precision(outputs[i]['boxes'],
                                                     targets[i]['boxes'].cpu().detach().numpy(),
                                                     thresholds=iou_thresholds,
                                                     form='pascal_voc')
