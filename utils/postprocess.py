@@ -118,9 +118,18 @@ def non_maximum_supression(outputs, threshold):
         outputs[i] = processed_output
     return  outputs
 
+def soft_nms(outputs, threshold):
+    return outputs
+
+def weighted_boxes_fusion(outputs, threshold):
+    return outputs
 
 def postprocessing(outputs, config):
-
+    ensemble_boxes_method_list = {
+        "nms": non_maximum_supression,
+        "WIP_soft_nms": soft_nms,
+        "WIP_wbf": weighted_boxes_fusion
+    }
     # detach and to cpu
     for i, output in enumerate(outputs):
         detached_output = {}
@@ -134,8 +143,10 @@ def postprocessing(outputs, config):
     if 0 < threshold_score:
         outputs = filter_score(outputs, threshold_score)
 
+    if not "ensemble_boxes_method" in config.keys():
+        return outputs
+    ensemble_boxes_method_name = config['ensemble_boxes_method']['name'] 
+    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(optimizer_list.keys()))
     # non maximamu supression
-    if config['non_maximum_supression']['apply']:
-        outputs = non_maximum_supression(outputs, **config['non_maximum_supression']['config'])
-
+    outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](outputs, **config['ensemble_boxes_method']['config'])
     return outputs

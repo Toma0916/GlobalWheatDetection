@@ -50,8 +50,8 @@
         "confidence_filter": {
             "min_confidence": 0.2
         },
-        "non_maximum_supression": {
-            "apply": true,
+        "post_processor": {
+            "method_name": "nms",
             "config": {
                 "threshold": 0.5
             }
