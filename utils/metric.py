@@ -186,12 +186,14 @@ def calculate_score(outputs, targets):
     """
     calculate score for batch
     """
-    
+    iou_thresholds = numba.typed.List()
+    for x in [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]:
+        iou_thresholds.append(x)
     image_precisions = np.zeros(len(outputs))
     for i in range(len(outputs)):
         image_precision = calculate_image_precision(outputs[i]['boxes'].data.cpu().numpy(),
                                                     targets[i]['boxes'].cpu().detach().numpy(),
-                                                    thresholds=[x for x in np.arange(0.5, 0.76, 0.05)], # iou_threshold
+                                                    thresholds=iou_thresholds,
                                                     form='pascal_voc')
         image_precisions[i] = image_precision
     return np.mean(image_precisions)
