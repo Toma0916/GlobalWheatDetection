@@ -149,7 +149,7 @@ class GWDDataset(DatasetMixin):
         target['area'] = area
         target['iscrowd'] = iscrowd
 
-        if is_train or config['valid']['apply_bbox_filter']:
+        if self.is_train or config['valid']['apply_bbox_filter']:
             target = filter_bboxes_by_size(target, self.bbox_filter_config)
 
         # get another sample if number of bounding boxes is zero
