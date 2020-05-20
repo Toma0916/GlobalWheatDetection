@@ -203,11 +203,7 @@ if __name__ == '__main__':
         random.seed(worker_id+random_seed)   
         np.random.seed(worker_id+random_seed)   
     
-    if config['train']['balance_sources']:
-        train_sampler = get_sampler(train_dataset)
-        train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], sampler=train_sampler, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
-    else:
-        train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], sampler=get_sampler(train_dataset, config['train']['sampler']), num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # load model and make parallel
