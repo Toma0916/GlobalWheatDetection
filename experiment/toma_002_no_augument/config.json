@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "toma/exp_1",
+        "output_dirname": "toma/exp_002_no_augument",
         "seed": 42,
         "model_save_interval": 10,
         "bbox_filter": {
@@ -12,7 +12,7 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backborn": "fasterrcnn_resnet50_fpn",
+            "backbone": "fasterrcnn_resnet50_fpn",
             "class_num": 2,
             "pretrained": true
         }
@@ -42,39 +42,6 @@
             }
         },
         "augment": {
-            "mosaic": {
-                "p": 0.5
-            },
-            "horizontal_flip": {
-                "p": 0.5
-            },
-            "vertical_flip": {
-                "p": 0.5
-            },
-            "random_sized_bbox_safe_crop": {
-                "height": 1024,
-                "width": 1024,
-                "p": 0.5
-            },
-            "blur": {
-                "p": 0.5
-            },
-            "motion_blur": {
-                "p": 0.5
-            },
-            "random_brightness": {
-                "p": 0.5,
-                "limit": 0.6
-            },
-            "random_contrast": {
-                "p": 0.5,
-                "limit": {
-                    "tuple": {
-                        "1": 0.7,
-                        "2": 0.9
-                    }
-                }
-            },
             "test_time_augment": false
         }
     }

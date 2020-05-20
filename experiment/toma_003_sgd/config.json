@@ -1,12 +1,12 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "20200519_01",
+        "output_dirname": "toma/exp_003_sgd",
         "seed": 42,
-        "model_save_interval": 5,
+        "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
-            "min_bbox_size": 90
+            "min_bbox_size": 3000
         }
     },
     "model": {
@@ -19,39 +19,55 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 100,
+        "epochs": 51,
         "optimizer": {
             "name": "sgd",
             "config": {
-                "lr": 0.005,
-                "momentum": 0.9,
-                "weight_decay": 0.0005
+                "lr": 0.0001,
+                "momentum": 0.9
             }
         },
         "scheduler": {
-            "name": "WarmupCosineAnnealing",
+            "name": "Step",
             "config": {
-                "T_max": 70
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
             }
         },
         "augment": {
             "mosaic": {
                 "p": 0.5
             },
-            "horizontal_frip": {
+            "horizontal_flip": {
                 "p": 0.5
             },
-            "vertical_frip": {
+            "vertical_flip": {
                 "p": 0.5
             },
-            "random_rotate_90": {
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 0.5
+            },
+            "blur": {
+                "p": 0.5
+            },
+            "motion_blur": {
                 "p": 0.5
             },
             "random_brightness": {
-                "p": 1.0
+                "p": 0.5,
+                "limit": 0.6
             },
             "random_contrast": {
-                "p": 1.0
+                "p": 0.5,
+                "limit": {
+                    "tuple": {
+                        "1": 0.7,
+                        "2": 0.9
+                    }
+                }
             },
             "test_time_augment": false
         }

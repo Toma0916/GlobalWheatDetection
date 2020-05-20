@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "20200519_01",
+        "output_dirname": "20200520_01",
         "seed": 42,
         "model_save_interval": 5,
         "bbox_filter": {
@@ -12,7 +12,7 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backbone": "fasterrcnn_resnet50_fpn",
+            "backborn": "fasterrcnn_resnet50_fpn",
             "class_num": 2,
             "pretrained": true
         }
@@ -31,12 +31,14 @@
         "scheduler": {
             "name": "WarmupCosineAnnealing",
             "config": {
-                "T_max": 70
+                "T_max": 70,
+                "warmup_iters": 10,
+                "eta_min": 1e-6
             }
         },
         "augment": {
             "mosaic": {
-                "p": 0.5
+                "p": 1.0
             },
             "horizontal_frip": {
                 "p": 0.5

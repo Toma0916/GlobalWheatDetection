@@ -50,14 +50,14 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 
-def fasterrcnn_model(backborn, class_num=2, pretrained=True):
+def fasterrcnn_model(backbone, class_num=2, pretrained=True):
 
-    backborn_list = {
+    backbone_list = {
         'fasterrcnn_resnet50_fpn': torchvision.models.detection.fasterrcnn_resnet50_fpn
     }
 
-    assert backborn in backborn_list.keys(), 'Backborn\'s name is not valid. Available backborns: %s' % str(list(backborn_list.keys()))
-    model = backborn_list[backborn](pretrained=pretrained)
+    assert backbone in backbone_list.keys(), 'Backbone\'s name is not valid. Available backbones: %s' % str(list(backbone_list.keys()))
+    model = backbone_list[backbone](pretrained=pretrained)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, class_num)
     return model 

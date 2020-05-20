@@ -1,9 +1,9 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
-        "output_dirname": "sample",
+        "output_dirname": "toma/exp_001",
         "seed": 42,
-        "model_save_interval": 3,
+        "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 3000
@@ -19,7 +19,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 10,
+        "epochs": 51,
         "optimizer": {
             "name": "adam",
             "config": {
@@ -42,10 +42,40 @@
             }
         },
         "augment": {
+            "mosaic": {
+                "p": 0.5
+            },
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 0.5
+            },
+            "blur": {
+                "p": 0.5
+            },
+            "motion_blur": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5,
+                "limit": 0.6
+            },
+            "random_contrast": {
+                "p": 0.5,
+                "limit": {
+                    "tuple": {
+                        "1": 0.7,
+                        "2": 0.9
+                    }
+                }
+            },
             "test_time_augment": false
         }
-    },
-    "valid": {
-        "apply_bbox_filter": true
     }
 }

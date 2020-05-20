@@ -99,13 +99,20 @@ def moisac(image_list, target_list, image_id_list):
             boxes[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh
         boxes4.append(boxes)
 
+        
+    
     # Concat/clip labels
     if len(boxes4):
         boxes4 = np.concatenate(boxes4, 0)
         boxes4 = np.clip(boxes4, 0, 2 * s) 
         boxes4 = np.array([box/2. for box in boxes4 if ((box[0]+1 < box[2]) and (box[1]+1 < box[3]))])  # resize and remove outliers
-    img4 = cv2.resize(img4, (s, s), interpolation=cv2.INTER_LINEAR)  # resize image by `INTER_LINEAR`
-    return img4, boxes4, joined_image_id
+        img4 = cv2.resize(img4, (s, s), interpolation=cv2.INTER_LINEAR)  # resize image by `INTER_LINEAR`
+        return img4, boxes4, joined_image_id
+    else:
+        # return original set if the number of bounding boxese after mosaic process is zero
+        return image_list[0], target_list[0], image_id_list[0]
+
+    
 
 
 class Transform:
