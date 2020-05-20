@@ -231,8 +231,8 @@ def cosine_annealing_scheduler(optimizer, T_max=20, eta_min=0.001):
 def warmup_multistep(optimizer, milestones=[10, 30, 50], gamma=0.1, warmup_factor=1.0/3, warmup_iters=500, warmup_method="linear"):
     return WarmupMultiStepLR(optimizer, milestones, gamma, warmup_factor, warmup_iters, warmup_method)
 
-def warmup_cosine_annealing_scheduler(optimizer, T_max=100, warmup_iters=10, eta_min=1e-6):
-    return WarmupCosineAnnealingLR(optimizer, T_max, warmup_iters, eta_min)
+def warmup_cosine_annealing_scheduler(optimizer, T_max=100, eta_min=1e-6, warmup_factor=1.0 / 3, warmup_iters=10):
+    return WarmupCosineAnnealingLR(optimizer, T_max, eta_min, warmup_factor, warmup_iters)
 
 def piecewise_cyclical_linear_scheduler(optimizer, c=10, alpha1=1e-2, alpha2=5e-4, last_epoch=-1):
     return PiecewiseCyclicalLinearLR(optimizer, c, alpha1, alpha2, last_epoch)
