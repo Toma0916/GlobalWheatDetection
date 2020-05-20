@@ -73,7 +73,8 @@ def train_epoch():
         images = list(image.float().to(device) for image in images)
 
         # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
-        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
+        targets_copied = copy.deepcopy(targets)
+        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())

@@ -51,9 +51,9 @@
             "min_confidence": 0.2
         },
         "post_processor": {
-            "method_name": "nms",
+            "name": "nms",
             "config": {
-                "threshold": 0.5
+                "threshold": 0.2
             }
         }
     }

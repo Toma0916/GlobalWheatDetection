@@ -9,6 +9,7 @@ import gc
 import six
 import json
 import time
+import copy
 import datetime
 from logging import getLogger
 from time import perf_counter
@@ -52,8 +53,12 @@ import sklearn.metrics
 
 
 def filter_score(outputs, threshold_score):
+
+    if threshold_score <= 0.0:
+        return outputs
     
     for i, output in enumerate(outputs):
+
         filtered_output = {key: [] for key in outputs[i].keys()}
         scores = output['scores']
         for j, score in enumerate(scores):
@@ -61,9 +66,14 @@ def filter_score(outputs, threshold_score):
                 filtered_output['boxes'].append(output['boxes'][j])
                 filtered_output['labels'].append(output['labels'][j])
                 filtered_output['scores'].append(output['scores'][j])
+
         filtered_output['boxes'] = np.array(filtered_output['boxes'])
         filtered_output['labels'] = np.array(filtered_output['labels'])
         filtered_output['scores'] = np.array(filtered_output['scores'])
+
+        # 処理によりboxが極端に減る場合は処理をスキップ
+        if filtered_output['boxes'].shape[0] < 5:
+            continue
 
         outputs[i] = filtered_output
     return outputs
@@ -75,61 +85,86 @@ def filter_score(outputs, threshold_score):
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
 # --------------------------------------------------------
-def non_maximum_supression_each(dets, thresh):
-    x1 = dets[:, 0]
-    y1 = dets[:, 1]
-    x2 = dets[:, 2]
-    y2 = dets[:, 3]
-    scores = dets[:, 4]
+def non_maximum_supression_each(bounding_boxes, confidence_score, threshold):
+    # If no bounding boxes, return empty list
+    if len(bounding_boxes) == 0:
+        return [], []
 
-    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
-    order = scores.argsort()[::-1]
+    # Bounding boxes
+    boxes = np.array(bounding_boxes)
 
-    keep = []
+    # coordinates of bounding boxes
+    start_x = boxes[:, 0]
+    start_y = boxes[:, 1]
+    end_x = boxes[:, 2]
+    end_y = boxes[:, 3]
+
+    # Confidence scores of bounding boxes
+    score = np.array(confidence_score)
+
+    # Picked bounding boxes
+    picked_boxes = []
+    picked_score = []
+
+    # Compute areas of bounding boxes
+    areas = (end_x - start_x + 1) * (end_y - start_y + 1)
+
+    # Sort by confidence score of bounding boxes
+    order = np.argsort(score)
+
+    # Iterate bounding boxes
     while order.size > 0:
-        i = order[0]
-        keep.append(i)
-        xx1 = np.maximum(x1[i], x1[order[1:]])
-        yy1 = np.maximum(y1[i], y1[order[1:]])
-        xx2 = np.minimum(x2[i], x2[order[1:]])
-        yy2 = np.minimum(y2[i], y2[order[1:]])
+        # The index of largest confidence score
+        index = order[-1]
 
-        w = np.maximum(0.0, xx2 - xx1 + 1)
-        h = np.maximum(0.0, yy2 - yy1 + 1)
-        inter = w * h
-        ovr = inter / (areas[i] + areas[order[1:]] - inter)
+        # Pick the bounding box with largest confidence score
+        picked_boxes.append(bounding_boxes[index])
+        picked_score.append(confidence_score[index])
 
-        inds = np.where(ovr <= thresh)[0]
-        order = order[inds + 1]
+        # Compute ordinates of intersection-over-union(IOU)
+        x1 = np.maximum(start_x[index], start_x[order[:-1]])
+        x2 = np.minimum(end_x[index], end_x[order[:-1]])
+        y1 = np.maximum(start_y[index], start_y[order[:-1]])
+        y2 = np.minimum(end_y[index], end_y[order[:-1]])
 
-    return keep
+        # Compute areas of intersection-over-union
+        w = np.maximum(0.0, x2 - x1 + 1)
+        h = np.maximum(0.0, y2 - y1 + 1)
+        intersection = w * h
+
+        # Compute the ratio between intersection and union
+        ratio = intersection / (areas[index] + areas[order[:-1]] - intersection)
+
+        left = np.where(ratio < threshold)
+        order = order[left]
+
+    return picked_boxes, picked_score
 
 
 def non_maximum_supression(outputs, threshold):
     
     for i, output in enumerate(outputs):
 
-        keep_index = non_maximum_supression_each(np.concatenate([output['boxes'], np.reshape(output['scores'], (-1, 1))], axis=1), threshold)
-        
+        picked_boxes, picked_scores = non_maximum_supression_each(output['boxes'], output['scores'], threshold)        
         processed_output = {}
-        processed_output['boxes'] = output['boxes'][keep_index]
-        processed_output['labels'] = output['labels'][keep_index]
-        processed_output['scores'] = output['scores'][keep_index]
+        processed_output['boxes'] = np.array(picked_boxes)
+        processed_output['scores'] = np.array(picked_scores)
+        processed_output['labels'] = np.ones(len(picked_boxes))
         outputs[i] = processed_output
+
     return  outputs
 
-def soft_nms(outputs, threshold):
+
+def soft_non_maximum_supression(outputs, threshold):
     return outputs
+
 
 def weighted_boxes_fusion(outputs, threshold):
     return outputs
 
+
 def postprocessing(outputs, config):
-    ensemble_boxes_method_list = {
-        "nms": non_maximum_supression,
-        "WIP_soft_nms": soft_nms,
-        "WIP_wbf": weighted_boxes_fusion
-    }
+
     # detach and to cpu
     for i, output in enumerate(outputs):
         detached_output = {}
@@ -139,14 +174,22 @@ def postprocessing(outputs, config):
         outputs[i] = detached_output
 
     # score filter 
-    threshold_score = config['confidence_filter']['min_confidence']
-    if 0 < threshold_score:
-        outputs = filter_score(outputs, threshold_score)
+    outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])  # deep copyいらないかも
 
-    if not "ensemble_boxes_method" in config.keys():
+    ensemble_boxes_method_list = {
+        "nms": non_maximum_supression,
+        "WIP_soft_nms": soft_non_maximum_supression,
+        "WIP_wbf": weighted_boxes_fusion
+    }
+    
+    if not "post_processor" in config.keys():
         return outputs
-    ensemble_boxes_method_name = config['ensemble_boxes_method']['name'] 
+    
+    ensemble_boxes_method_name = config['post_processor']['name'] 
     assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(optimizer_list.keys()))
+
     # non maximamu supression
-    outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](outputs, **config['ensemble_boxes_method']['config'])
+    outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
     return outputs
+
+            
