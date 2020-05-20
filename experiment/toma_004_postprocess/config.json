@@ -6,8 +6,8 @@
         "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
-            "min_bbox_size": 3000
-        }
+            "min_bbox_size": 10
+        }    
     },
     "model": {
         "name": "faster_rcnn", 
