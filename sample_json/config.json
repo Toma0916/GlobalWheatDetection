@@ -44,5 +44,8 @@
         "augment": {
             "test_time_augment": false
         }
+    },
+    "valid": {
+        "apply_bbox_filter": true
     }
 }
