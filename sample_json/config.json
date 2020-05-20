@@ -43,7 +43,8 @@
         },
         "augment": {
             "test_time_augment": false
-        }
+        },
+        "balance_sources": true
     },
     "valid": {
         "apply_bbox_filter": true
