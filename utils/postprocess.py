@@ -69,6 +69,56 @@ def filter_score(outputs, threshold_score):
     return outputs
 
 
+# --------------------------------------------------------
+# Fast R-CNN
+# Copyright (c) 2015 Microsoft
+# Licensed under The MIT License [see LICENSE for details]
+# Written by Ross Girshick
+# --------------------------------------------------------
+def non_maximum_supression_each(dets, thresh):
+    x1 = dets[:, 0]
+    y1 = dets[:, 1]
+    x2 = dets[:, 2]
+    y2 = dets[:, 3]
+    scores = dets[:, 4]
+
+    areas = (x2 - x1 + 1) * (y2 - y1 + 1)
+    order = scores.argsort()[::-1]
+
+    keep = []
+    while order.size > 0:
+        i = order[0]
+        keep.append(i)
+        xx1 = np.maximum(x1[i], x1[order[1:]])
+        yy1 = np.maximum(y1[i], y1[order[1:]])
+        xx2 = np.minimum(x2[i], x2[order[1:]])
+        yy2 = np.minimum(y2[i], y2[order[1:]])
+
+        w = np.maximum(0.0, xx2 - xx1 + 1)
+        h = np.maximum(0.0, yy2 - yy1 + 1)
+        inter = w * h
+        ovr = inter / (areas[i] + areas[order[1:]] - inter)
+
+        inds = np.where(ovr <= thresh)[0]
+        order = order[inds + 1]
+
+    return keep
+
+
+def non_maximum_supression(outputs, threshold):
+    
+    for i, output in enumerate(outputs):
+
+        keep_index = non_maximum_supression_each(np.concatenate([output['boxes'], np.reshape(output['scores'], (-1, 1))], axis=1), threshold)
+        
+        processed_output = {}
+        processed_output['boxes'] = output['boxes'][keep_index]
+        processed_output['labels'] = output['labels'][keep_index]
+        processed_output['scores'] = output['scores'][keep_index]
+        outputs[i] = processed_output
+    return  outputs
+
+
 def postprocessing(outputs, config):
 
     # detach and to cpu
@@ -84,9 +134,8 @@ def postprocessing(outputs, config):
     if 0 < threshold_score:
         outputs = filter_score(outputs, threshold_score)
 
-    # import pdb; pdb.set_trace()
-
     # non maximamu supression
-    pass
+    if config['non_maximum_supression']['apply']:
+        outputs = non_maximum_supression(outputs, **config['non_maximum_supression']['config'])
 
     return outputs

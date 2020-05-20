@@ -46,6 +46,15 @@
         }
     },
     "valid": {
-        "apply_bbox_filter": true
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.2
+        },
+        "non_maximum_supression": {
+            "apply": true,
+            "config": {
+                "threshold": 0.5
+            }
+        }
     }
 }
