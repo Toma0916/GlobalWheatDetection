@@ -102,7 +102,7 @@ class GWDDataset(DatasetMixin):
     def __init__(self, dataframe, image_dir, config=None, is_train=False):
         self.config = config
         self.transform_config = config['train']['augment']
-        self.test_config = config['valid']
+        self.test_config = config['valid'] if 'valid' in config.keys() else None
         self.bbox_filter_config = config['general']['bbox_filter']
         self.is_train = is_train
         
