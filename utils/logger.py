@@ -153,13 +153,14 @@ class ImageStorage():
 
 class TensorBoardLogger:
 
-    def __init__(self, model, optimizer, output_dir, trained_epoch, model_save_interval):
+    def __init__(self, model, optimizer, output_dir, trained_epoch, model_save_interval, valid_image_save_interval):
 
         self.model = model 
         self.optimizer = optimizer
         self.trained_epoch = trained_epoch
         self.trained_epoch_this_run = 0
         self.model_save_interval = model_save_interval
+        self.valid_image_save_interval = valid_image_save_interval
         self.experiment_name = output_dir.name  # 保存するディレクトリ名を一致させる
         self.save_dir = output_dir
 
@@ -214,9 +215,12 @@ class TensorBoardLogger:
         for key, value in self.valid_loss_epoch_history.value.items():
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
         self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
-        images = self.image_epoch_history.painted_images
-        for key, value in images.items():
-            self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
+
+        # save image
+        if ((self.trained_epoch_this_run - 1)) % self.valid_image_save_interval == 0:
+            images = self.image_epoch_history.painted_images
+            for key, value in images.items():
+                self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':

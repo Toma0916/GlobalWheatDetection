@@ -1,9 +1,10 @@
 {
-    "debug": false,
+    "debug": true,
     "general": {
         "output_dirname": "sample",
         "seed": 42,
         "model_save_interval": 3,
+        "valid_image_save_interval": 3,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 90
