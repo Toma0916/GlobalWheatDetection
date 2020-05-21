@@ -188,7 +188,7 @@ def postprocessing(outputs, config):
         "WIP_wbf": weighted_boxes_fusion
     }
     
-    if not "post_processor" in config.keys():
+    if not config["post_processor"]["name"] in config.keys():
         return outputs
     
     ensemble_boxes_method_name = config['post_processor']['name'] 
