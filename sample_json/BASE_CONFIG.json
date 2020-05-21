@@ -10,16 +10,13 @@
             "min_bbox_size": 0
         },
         "train_valid_split": {
-            "name": "random"
+            "name": "random",
+            "config": {}
         }
     },
     "model": {
         "name": "faster_rcnn", 
-        "config": {
-            "backbone": "fasterrcnn_resnet50_fpn",
-            "class_num": 2,
-            "pretrained": true
-        }
+        "config": {}
     },
     "train": {
         "batch_size": 8,
@@ -33,28 +30,16 @@
             }
         },
         "sampler": {
-            "name": ""
+            "name": "",
+            "config": {}
         },
         "optimizer": {
-            "name": "adam",
-            "config": {
-                "lr": 0.0001,
-                "betas": {
-                    "tuple": {
-                        "b1": 0.5,
-                        "b2": 0.999
-                    }
-                },
-                "eps": 1e-8
-            }
+            "name": "",
+            "config": {}
         },
         "scheduler": {
-            "name": "Step",
-            "config": {
-                "step_size": 10,
-                "gamma": 0.1,
-                "last_epoch": -1
-            }
+            "name": "",
+            "config": {}
         },
         "augment": {
             "test_time_augment": false

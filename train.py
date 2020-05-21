@@ -154,8 +154,9 @@ if __name__ == '__main__':
 
     with open(args.json_path, 'r') as f:
         config = json.load(f)
-    config = expand_json(config)
     config = format_config_by_baseconfig(config)
+    # print(config)
+    config = expand_json(config)
 
     SRC_DIR = Path('.').resolve()/'src'
     TRAIN_IMAGE_DIR = SRC_DIR/'train'
@@ -178,7 +179,7 @@ if __name__ == '__main__':
         os.makedirs(str(OUTPUT_DIR), exist_ok=False)
         with open(str(OUTPUT_DIR/"config.json"), "w") as f:
             json.dump(config, f, indent=4)
-        shutil.copy(args.json_path , str(OUTPUT_DIR/"config.json"))
+        # shutil.copy(args.json_path , str(OUTPUT_DIR/"config.json"))
 
         debug = config['debug']
         random_seed = config['general']['seed']
