@@ -100,11 +100,8 @@ class DatasetMixin(Dataset):
 class GWDDataset(DatasetMixin):
 
     def __init__(self, dataframe, image_dir, config=None, is_train=False):
+        
         self.config = config
-        self.transform_config = config['train']['augment']
-        self.test_config = config['valid'] if 'valid' in config.keys() else {}
-
-        self.bbox_filter_config = config['general']['bbox_filter']
         self.is_train = is_train
         
         self.image_ids = dataframe['image_id'].unique()
@@ -113,7 +110,7 @@ class GWDDataset(DatasetMixin):
         self.indices = np.arange(len(self.image_ids))
         self.image_size = 1024
 
-        transform = Transform(self.transform_config, self.is_train)
+        transform = Transform(self.config['train']['augment'], self.is_train)
         super(GWDDataset, self).__init__(transform=transform)
 
         dff = self.df[['image_id', 'source']].drop_duplicates()
@@ -153,11 +150,10 @@ class GWDDataset(DatasetMixin):
         target['area'] = area
         target['iscrowd'] = iscrowd
 
-        if not 'apply_bbox_filter' in self.test_config.keys():
-            self.test_config = {'apply_bbox_filter': False}
-
-        if self.is_train or self.test_config['apply_bbox_filter']:
-            target = filter_bboxes_by_size(target, self.bbox_filter_config)
+        if not 'valid' in self.config.keys():
+            self.config['valid'] = {'apply_bbox_filter': False}
+        if self.is_train or self.config['valid']['apply_bbox_filter']:
+            target = filter_bboxes_by_size(target, self.config['general']['bbox_filter'])
 
         # get another sample if number of bounding boxes is zero
         if len(target['boxes']) == 0:
