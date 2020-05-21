@@ -42,7 +42,7 @@ import sklearn.metrics
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
-from utils.functions import convert_dataframe, filter_bboxes_by_size
+from utils.functions import convert_dataframe, filter_bboxes_by_size, drop_bboxes_by_probability, vibrate_bboxes_with_ratio
 from utils.transform import Transform
 
 
@@ -122,7 +122,6 @@ class GWDDataset(DatasetMixin):
         """return length of this dataset"""
         return len(self.indices)
     
-    
     def get_example(self, i):
 
         im_h = self.image_size
@@ -139,11 +138,15 @@ class GWDDataset(DatasetMixin):
         boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
         boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
 
+        if self.is_train:
+            boxes = drop_bboxes_by_probability(boxes, self.config['train']['random_annotation']['drop']['p'])
+            boxes = vibrate_bboxes_with_ratio(boxes, self.config['train']['random_annotation']['vibration']['max_ratio'], (im_h, im_w))
+
         area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
         area = torch.as_tensor(area, dtype=torch.float32)
 
-        labels = torch.ones((records.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
-        iscrowd = torch.zeros((records.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+        labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+        iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
 
         target = {}
         target['boxes'] = boxes

@@ -77,3 +77,35 @@ def filter_bboxes_by_size(target, config):
     if config['min_bbox_size'] >= 0:
         target = get_filtered_bboxes(target, config['min_bbox_size'], -1)
     return target
+
+
+def drop_bboxes_by_probability(boxes, p):
+
+    if p <= 0.0:
+        return boxes
+
+    dropped_boxes = boxes[(p < np.random.rand(boxes.shape[0])), :]
+
+    if dropped_boxes.shape[0] == 0:
+        return boxes
+    return dropped_boxes
+
+
+def vibrate_bboxes_with_ratio(boxes, ratio, image_size): 
+
+    if ratio <= 0:
+        return boxes
+
+    h, w = image_size
+
+    boxes_width = boxes[:, 2] - boxes[:, 0]
+    boxes_height = boxes[:, 3] - boxes[:, 1]
+
+    for i in range(boxes.shape[0]):
+        boxes[i][0] = np.max([0, boxes[i][0] + int(ratio * np.random.randint(boxes_width[i]*(-1), boxes_width[i]))])
+        boxes[i][1] = np.max([0, boxes[i][1] + int(ratio * np.random.randint(boxes_height[i]*(-1), boxes_height[i]))])
+        boxes[i][2] = np.min([w, boxes[i][2] + int(ratio * np.random.randint(boxes_width[i]*(-1), boxes_width[i]))])
+        boxes[i][3] = np.min([h, boxes[i][3] + int(ratio * np.random.randint(boxes_height[i]*(-1), boxes_height[i]))])
+    
+    return boxes
+

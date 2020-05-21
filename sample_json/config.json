@@ -1,5 +1,5 @@
 {
-    "debug": false,
+    "debug": true,
     "general": {
         "output_dirname": "sample",
         "seed": 42,
@@ -26,6 +26,14 @@
     "train": {
         "batch_size": 8,
         "epochs": 10,
+        "random_annotation": {
+            "drop": {
+                "p": 0.05
+            },
+            "vibration": {
+                "max_ratio": 0.15
+            }
+        },
         "sampler": {
             "name": "balance_sources",
             "config": {
