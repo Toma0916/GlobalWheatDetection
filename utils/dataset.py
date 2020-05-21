@@ -102,7 +102,8 @@ class GWDDataset(DatasetMixin):
     def __init__(self, dataframe, image_dir, config=None, is_train=False):
         self.config = config
         self.transform_config = config['train']['augment']
-        self.test_config = config['valid'] if 'valid' in config.keys() else None
+        self.test_config = config['valid'] if 'valid' in config.keys() else {}
+
         self.bbox_filter_config = config['general']['bbox_filter']
         self.is_train = is_train
         
@@ -152,9 +153,10 @@ class GWDDataset(DatasetMixin):
         target['area'] = area
         target['iscrowd'] = iscrowd
 
-        if not 'valid' in self.config.keys():
-            self.config['valid'] = {'apply_bbox_filter': False}
-        if self.is_train or self.config['valid']['apply_bbox_filter']:
+        if not 'apply_bbox_filter' in self.test_config.keys():
+            self.test_config = {'apply_bbox_filter': False}
+
+        if self.is_train or self.test_config['apply_bbox_filter']:
             target = filter_bboxes_by_size(target, self.bbox_filter_config)
 
         # get another sample if number of bounding boxes is zero

@@ -58,6 +58,15 @@
         }
     },
     "valid": {
-        "apply_bbox_filter": true
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.2
+        },
+        "post_processor": {
+            "name": "nms",
+            "config": {
+                "threshold": 0.2
+            }
+        }
     }
 }
