@@ -69,6 +69,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - pytorch=1.5.0 
 - torchvision=0.6.0 
 - albumentations=0.4.5
+- mlflow=1.8.0 
 
 ## Usage
 Make json file about train setting and run hogehoge.sh with json path.
