@@ -109,3 +109,19 @@ def vibrate_bboxes_with_ratio(boxes, ratio, image_size):
     
     return boxes
 
+def func(d_base, d):
+    for k, v in d_base.items():
+        if k=="config":
+            continue
+        if isinstance(v, dict):
+            if not k in d.keys():
+                d[k] = {}
+            d[k] = func(d_base[k], d[k])
+        elif not k in d.keys():
+            d[k] = d_base[k]
+    return d
+
+def format_config_by_baseconfig(config, base_config_path='./sample/BASE_CONFIG.json'):
+    with open(base_config_path, 'r') as f:
+        base_config = json.load(f)
+    return func(base_config, config)

@@ -60,7 +60,7 @@ from scheduler import get_scheduler
 
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
-from utils.functions import convert_dataframe
+from utils.functions import convert_dataframe, format_config_by_baseconfig
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
 from utils.postprocess import postprocessing
@@ -155,6 +155,7 @@ if __name__ == '__main__':
     with open(args.json_path, 'r') as f:
         config = json.load(f)
     config = expand_json(config)
+    config = format_config_by_baseconfig(config)
 
     SRC_DIR = Path('.').resolve()/'src'
     TRAIN_IMAGE_DIR = SRC_DIR/'train'
