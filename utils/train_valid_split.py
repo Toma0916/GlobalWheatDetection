@@ -7,6 +7,7 @@ def debug_split(dataframe):
     valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
     return train_ids, valid_ids
 
+
 def random_split(dataframe, train_rate=0.8):
     image_ids = dataframe['image_id'].unique()
 
@@ -17,6 +18,7 @@ def random_split(dataframe, train_rate=0.8):
     valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
     return train_ids, valid_ids
 
+
 def source_split(dataframe, valid_sources=['ethz_1']):
     df = dataframe[['image_id', 'source']].drop_duplicates()
     imageid_source_dict = dict(zip(df.image_id, df.source))
@@ -24,9 +26,12 @@ def source_split(dataframe, valid_sources=['ethz_1']):
     valid_ids = [k for k, v in imageid_source_dict.items() if v in valid_sources]
     return train_ids, valid_ids
 
+
 def train_valid_split(dataframe, config):
+
     if config['debug']:
         return debug_split(dataframe)
+
     if 'train_valid_split' not in config['general'].keys():
         config['general']['train_valid_split'] = {'name': 'random', 'config': {'train_rate': 0.8}}
     split_config = config['general']['train_valid_split']
@@ -35,4 +40,5 @@ def train_valid_split(dataframe, config):
         'random': random_split,
         'source': source_split
     }
+    
     return split_method_list[split_config['name']](dataframe,  **split_config['config'])
