@@ -61,7 +61,7 @@ from scheduler import get_scheduler
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.functions import convert_dataframe
-from utils.logger import TensorBoardLogger
+from utils.logger import Logger
 from utils.metric import calculate_score
 from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
@@ -179,8 +179,6 @@ if __name__ == '__main__':
 
         debug = config['debug']
         random_seed = config['general']['seed']
-        model_save_interval = config['general']['model_save_interval']
-        valid_image_save_interval = config['general']['valid_image_save_interval']
         trained_epoch = 0
         trained_iter = 0
         trained_weights_path = None        
@@ -216,7 +214,7 @@ if __name__ == '__main__':
     scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
     # log setting
-    logger = TensorBoardLogger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, model_save_interval=model_save_interval, valid_image_save_interval=valid_image_save_interval)
+    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, config=config)
 
     # training
     for epoch in range(trained_epoch+1, config['train']['epochs']+1):

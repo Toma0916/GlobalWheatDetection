@@ -51,6 +51,9 @@ import sklearn.metrics
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
+# --- mlflow ---
+import mlflow
+
 from utils.functions import get_lr
 
 
@@ -151,16 +154,16 @@ class ImageStorage():
 
 
 
-class TensorBoardLogger:
+class Logger:
 
-    def __init__(self, model, optimizer, output_dir, trained_epoch, model_save_interval, valid_image_save_interval):
+    def __init__(self, model, optimizer, output_dir, trained_epoch, config):
 
         self.model = model 
         self.optimizer = optimizer
         self.trained_epoch = trained_epoch
         self.trained_epoch_this_run = 0
-        self.model_save_interval = model_save_interval
-        self.valid_image_save_interval = valid_image_save_interval
+        self.model_save_interval = config['general']['model_save_interval']
+        self.valid_image_save_interval = config['general']['valid_image_save_interval']
         self.experiment_name = output_dir.name  # 保存するディレクトリ名を一致させる
         self.save_dir = output_dir
 
@@ -241,3 +244,7 @@ class TensorBoardLogger:
         predict_boxes = [output['boxes'] for output in outputs] if (outputs is not None) else None
         predict_scores = [output['scores'] for output in outputs] if (outputs is not None) else None
         self.image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)
+
+
+
+
