@@ -1,12 +1,18 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
         "output_dirname": "sample",
         "seed": 42,
         "model_save_interval": 3,
         "bbox_filter": {
             "max_bbox_size": 160000,
-            "min_bbox_size": 3000
+            "min_bbox_size": 90
+        },
+        "train_valid_split": {
+            "name": "source",
+            "config": {
+                "valid_sources": ["ethz_1", "inrae_1"]
+            }
         }
     },
     "model": {
