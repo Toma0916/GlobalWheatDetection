@@ -20,6 +20,16 @@ def random_split(dataframe, train_rate=0.8):
 
 
 def source_split(dataframe, valid_sources=['ethz_1']):
+    """
+    ethz_1       51489
+    arvalis_1    45716
+    rres_1       20236
+    arvalis_3    16665
+    usask_1       5807
+    arvalis_2     4179
+    inrae_1       3701
+    """
+    
     df = dataframe[['image_id', 'source']].drop_duplicates()
     imageid_source_dict = dict(zip(df.image_id, df.source))
     train_ids = [k for k, v in imageid_source_dict.items() if not v in valid_sources]
@@ -40,5 +50,5 @@ def train_valid_split(dataframe, config):
         'random': random_split,
         'source': source_split
     }
-    
+
     return split_method_list[split_config['name']](dataframe,  **split_config['config'])
