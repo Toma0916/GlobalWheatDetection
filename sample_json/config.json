@@ -28,10 +28,10 @@
         "epochs": 10,
         "random_annotation": {
             "drop": {
-                "p": 0.05
+                "p": 0.0
             },
             "vibration": {
-                "max_ratio": 0.15
+                "max_ratio": 0.0
             }
         },
         "sampler": {
