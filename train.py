@@ -32,6 +32,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.nn import Sequential
 from torch.autograd import Variable
+from torch.utils.data import WeightedRandomSampler
 from torch.utils.data.dataset import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -63,6 +64,7 @@ from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
 from utils.postprocess import postprocessing
+from utils.sampler import get_sampler
 
 
 def train_epoch():
@@ -73,14 +75,14 @@ def train_epoch():
         images = list(image.float().to(device) for image in images)
 
         # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
-        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
+        targets_copied = copy.deepcopy(targets)
+        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
         optimizer.zero_grad()
         losses.backward()
         optimizer.step()
-
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
     logger.send_images(images, image_ids, target_boxes, None)
@@ -202,8 +204,8 @@ if __name__ == '__main__':
     def worker_init_fn(worker_id):   
         random.seed(worker_id+random_seed)   
         np.random.seed(worker_id+random_seed)   
-
-    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    
+    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], sampler=get_sampler(train_dataset, config['train']), num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # load model and make parallel
