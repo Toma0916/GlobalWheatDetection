@@ -63,6 +63,7 @@ from utils.transform import Transform
 from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
+from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
 
@@ -75,7 +76,8 @@ def train_epoch():
         images = list(image.float().to(device) for image in images)
 
         # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
-        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets]
+        targets_copied = copy.deepcopy(targets)
+        target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
@@ -84,7 +86,7 @@ def train_epoch():
         optimizer.step()
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
-        
+
     logger.send_images(images, image_ids, target_boxes, None)
     logger.end_train_epoch()
 
@@ -109,6 +111,7 @@ def evaluate_epoch():
             # Start calculating scores for competition
             model.eval()
             outputs = model(images)
+            outputs = postprocessing(outputs, config["valid"]) if 'valid' in config.keys() else outputs
             matric_score = calculate_score(outputs, targets_copied)
             logger.send_score(matric_score)
             
