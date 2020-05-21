@@ -54,7 +54,7 @@ from albumentations.core.transforms_interface import DualTransform
 # --- mlflow ---
 import mlflow
 
-from utils.functions import get_lr
+from utils.functions import get_lr, dict_flatten, randomname
 
 
 class LossAverager:
@@ -164,7 +164,7 @@ class Logger:
         self.trained_epoch_this_run = 0
         self.model_save_interval = config['general']['model_save_interval']
         self.valid_image_save_interval = config['general']['valid_image_save_interval']
-        self.experiment_name = output_dir.name  # 保存するディレクトリ名を一致させる
+        self.experiment_name = config['general']['experiment_name']
         self.save_dir = output_dir
 
         self.train_loss_epoch_history = LossAverager()
@@ -173,12 +173,26 @@ class Logger:
         self.image_epoch_history = ImageStorage()
 
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
-
         self.mode = 'train'
 
+        self.initialize_mlflow(config)
 
-    def __del__(self):
-        pass
+
+    def initialize_mlflow(self, config):
+        # mlflow
+        mlflow.set_experiment(self.experiment_name)
+        mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
+
+        mlflow.log_params(dict_flatten(config))
+
+        # import pdb; pdb.set_trace()
+
+    def finish_training(self):
+        self.writer.close()
+        mlflow.end_run()
+
+
+
 
     def start_train_epoch(self):
         self.mode = 'train'
@@ -205,13 +219,14 @@ class Logger:
         if (self.trained_epoch_this_run - 1) % self.model_save_interval == 0:
             filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
             torch.save(self.model.state_dict(), filepath)
-
+        
+        mlflow.log_metrics({'train/%s' % k: v for k, v in self.train_loss_epoch_history.value.items()})
 
     def start_valid_epoch(self):
         self.mode = 'valid'
         self.valid_loss_epoch_history.reset()
         self.valid_metric_epoch_history.reset()
-        self.image_epoch_history .reset()
+        self.image_epoch_history.reset()
 
 
     def end_valid_epoch(self):
@@ -224,6 +239,10 @@ class Logger:
             images = self.image_epoch_history.painted_images
             for key, value in images.items():
                 self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
+        
+        mlflow.log_metrics({'valid/%s' % k: v for k, v in self.valid_loss_epoch_history.value.items()})
+        mlflow.log_metrics({'valid/score': self.valid_metric_epoch_history.value})
+
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':

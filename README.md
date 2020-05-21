@@ -68,7 +68,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 
 - other utils
   - TensorBoard 
-  - MLFlow
+  - MLFlow (run `mlflow ui --port 5000` in root)
  
  
 ## Requirement

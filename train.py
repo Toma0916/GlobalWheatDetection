@@ -67,6 +67,8 @@ from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
 
+warnings.simplefilter('ignore')  # 基本warningオフにしたい
+
 
 def train_epoch():
 
@@ -225,5 +227,8 @@ if __name__ == '__main__':
         evaluate_epoch()
         if scheduler is not None:
             scheduler.step()
+    
+    logger.finish_training()
+
 
 
