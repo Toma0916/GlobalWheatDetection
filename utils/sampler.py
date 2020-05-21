@@ -15,12 +15,13 @@ def balance_sources_sampler(dataset, strength):
 
 
 def get_sampler(dataset, config):
-
+    if not 'sample' in config.keys():
+        config['sample'] = {'name': ''}
     sampler_list = {
         'balance_sources': balance_sources_sampler
     }
 
-    if config['name'] not in sampler_list.keys():
+    if 'name' not in sampler_list.keys():
         return None
     
     sampler = sampler_list[config['name']](dataset, **config['config'])    
