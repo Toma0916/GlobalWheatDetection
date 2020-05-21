@@ -192,7 +192,7 @@ def postprocessing(outputs, config):
         return outputs
     
     ensemble_boxes_method_name = config['post_processor']['name'] 
-    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(optimizer_list.keys()))
+    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(ensemble_boxes_method_list.keys()))
 
     # non maximamu supression
     outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
