@@ -174,9 +174,6 @@ def postprocessing(outputs, config):
         outputs[i] = detached_output
 
     # score filter 
-    if not 'confidence_filter' in config.keys():
-        config['confidence_filter'] = {'min_confidence': 0}
-    threshold_score = config['confidence_filter']['min_confidence']
     outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])
 
     # non maximamu supression

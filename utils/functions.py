@@ -13,6 +13,7 @@ from logging import getLogger
 from time import perf_counter
 import warnings
 import glob
+import copy
 
 import numpy as np 
 from numpy.random.mtrand import RandomState
@@ -109,3 +110,18 @@ def vibrate_bboxes_with_ratio(boxes, ratio, image_size):
     
     return boxes
 
+def func(d_base, d):
+    for k, v in d_base.items():
+        if isinstance(v, dict):
+            if not k in d.keys():
+                d[k] = {}
+            if k != 'config':
+                d[k] = func(d_base[k], d[k])
+        elif not k in d.keys():
+            d[k] = d_base[k]
+    return d
+
+def format_config_by_baseconfig(config, base_config_path='./sample_json/BASE_CONFIG.json'):
+    with open(base_config_path, 'r') as f:
+        base_config = json.load(f)
+    return func(copy.deepcopy(base_config), copy.deepcopy(config))
