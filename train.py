@@ -64,6 +64,7 @@ from utils.functions import convert_dataframe
 from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
 from utils.sampler import get_sampler
+from utils.train_valid_split import train_valid_split
 
 
 def train_epoch():
@@ -117,10 +118,10 @@ def evaluate_epoch():
 
 
 def update_dict(d, keys, value):
-        if len(keys) == 1:
-            d[keys[0]] = value 
-        else:
-            update_dict(d[keys[0]], keys[1:], value)
+    if len(keys) == 1:
+        d[keys[0]] = value 
+    else:
+        update_dict(d[keys[0]], keys[1:], value)
 
 
 def expand_json(d, keys=[]):
@@ -183,15 +184,17 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(random_seed)  
     
     # prepare for training
-    image_ids = DATAFRAME['image_id'].unique()
-    image_num = len(image_ids)
-    image_ids = np.random.permutation(image_ids)
+    # image_ids = DATAFRAME['image_id'].unique()
+    # image_num = len(image_ids)
+    # image_ids = np.random.permutation(image_ids)
 
-    train_data_size = int(image_num * 0.8) if not(debug) else 100
-    valid_data_size = int(image_num - train_data_size) if not(debug) else 20
+    # train_data_size = int(image_num * 0.8) if not(debug) else 100
+    # valid_data_size = int(image_num - train_data_size) if not(debug) else 20
 
-    train_ids = image_ids[:train_data_size]
-    valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
+    # train_ids = image_ids[:train_data_size]
+    # valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
+
+    train_ids, valid_ids = train_valid_split(DATAFRAME, config)
 
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
