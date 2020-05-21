@@ -2,6 +2,7 @@
     "debug": true,
     "general": {
         "output_dirname": "sample",
+        "experiment_name": "sample",
         "seed": 42,
         "model_save_interval": 5,
         "valid_image_save_interval": 5,
