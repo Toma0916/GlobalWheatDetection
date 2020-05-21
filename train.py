@@ -164,7 +164,11 @@ if __name__ == '__main__':
 
     device = torch.device('cuda:0')
 
-    if os.path.exists(OUTPUT_DIR):
+    if OUTPUT_DIR.name == 'sample' and os.path.exists(OUTPUT_DIR):
+        print("'output/sample' is be overwritten.")
+        shutil.rmtree(OUTPUT_DIR)
+    
+    if os.path.exists(OUTPUT_DIR):        
         print('[WIP]: reload weights. Execute sys.exit().')
         sys.exit()  # [WIP]: reload weights
     else:
