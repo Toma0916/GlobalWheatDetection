@@ -20,6 +20,12 @@
     "train": {
         "batch_size": 8,
         "epochs": 10,
+        "sampler": {
+            "name": "balance_sources",
+            "config": {
+                "strength": 1000
+            }
+        },
         "optimizer": {
             "name": "adam",
             "config": {
