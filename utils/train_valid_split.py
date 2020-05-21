@@ -18,16 +18,17 @@ def random_split(dataframe, train_rate=0.8):
     return train_ids, valid_ids
 
 def source_split(dataframe, valid_sources=['ethz_1']):
-    imageid_source_dict = dataframe[['image_id', 'source']].drop_duplicates()
-    train_ids = [k for k, v in imageid_source_dict.items() if v in valid_sources]
-    valid_ids = [k for k, v in imageid_source_dict.items() if not v in valid_sources]
+    df = dataframe[['image_id', 'source']].drop_duplicates()
+    imageid_source_dict = dict(zip(df.image_id, df.source))
+    train_ids = [k for k, v in imageid_source_dict.items() if not v in valid_sources]
+    valid_ids = [k for k, v in imageid_source_dict.items() if v in valid_sources]
     return train_ids, valid_ids
 
 def train_valid_split(dataframe, config):
     if config['debug']:
         return debug_split(dataframe)
     if 'train_valid_split' not in config['general'].keys():
-        config['general']['train_valid_split'] = {'name': 'random', 'config': None}
+        config['general']['train_valid_split'] = {'name': 'random', 'config': {'train_rate': 0.8}}
     split_config = config['general']['train_valid_split']
     split_method_list = {
         'debug_split': debug_split,

@@ -1,5 +1,5 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
         "output_dirname": "sample",
         "seed": 42,
