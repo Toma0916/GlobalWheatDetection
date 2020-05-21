@@ -176,6 +176,8 @@ if __name__ == '__main__':
 
         # copy json to output dir
         os.makedirs(str(OUTPUT_DIR), exist_ok=False)
+        with open(str(OUTPUT_DIR/"config.json"), "w") as f:
+            json.dump(config, f, indent=4)
         shutil.copy(args.json_path , str(OUTPUT_DIR/"config.json"))
 
         debug = config['debug']
