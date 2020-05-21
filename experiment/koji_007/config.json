@@ -75,5 +75,11 @@
             },
             "test_time_augment": false
         }
+    },
+    "valid": {
+        "apply_bbox_filter": false,
+        "confidence_filter": {
+            "min_confidence": 0
+        }
     }
 }
