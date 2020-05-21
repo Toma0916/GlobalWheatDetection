@@ -60,8 +60,8 @@ from scheduler import get_scheduler
 
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
-from utils.functions import convert_dataframe
 from utils.logger import Logger
+from utils.functions import convert_dataframe, format_config_by_baseconfig
 from utils.metric import calculate_score
 from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
@@ -156,6 +156,7 @@ if __name__ == '__main__':
 
     with open(args.json_path, 'r') as f:
         config = json.load(f)
+    config = format_config_by_baseconfig(config)    
     config = expand_json(config)
 
     SRC_DIR = Path('.').resolve()/'src'
@@ -177,7 +178,8 @@ if __name__ == '__main__':
 
         # copy json to output dir
         os.makedirs(str(OUTPUT_DIR), exist_ok=False)
-        shutil.copy(args.json_path , str(OUTPUT_DIR/"config.json"))
+        with open(str(OUTPUT_DIR/"config.json"), "w") as f:
+            json.dump(config, f, indent=4)
 
         debug = config['debug']
         random_seed = config['general']['seed']
