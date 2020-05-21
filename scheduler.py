@@ -216,10 +216,8 @@ class PolyLR(torch.optim.lr_scheduler._LRScheduler):
 
         return lrs
 
-import math
-from torch.optim.lr_scheduler import _LRScheduler
 
-class CosineAnnealingWarmUpRestarts(_LRScheduler):
+class CosineAnnealingWarmUpRestarts(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, T_0, T_mult=1, eta_max=0.1, T_up=0, gamma=1., last_epoch=-1):
         if T_0 <= 0 or not isinstance(T_0, int):
             raise ValueError("Expected positive integer T_0, but got {}".format(T_0))
