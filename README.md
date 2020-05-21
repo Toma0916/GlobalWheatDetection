@@ -21,12 +21,12 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 
 - model
   -  Faster RCNN
-  -  SGD
+  -  
   -
  
 - optimizer
   - Adam
-  -
+  - SGD
   - 
 
 - scheduler
@@ -38,6 +38,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - WarmupCosineAnnealingLR
   - PiecewiseCyclicalLinearLR
   - PolyLR
+  - WarmupCosineAnnealingRestartsLR
   
 - augmentations
   - HorizontalFlip
@@ -58,6 +59,16 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - GaussNoise
   - Cutout
   - Mosaic
+
+- post processing
+  - filtering by confidence score
+  - non maximum supression
+  - [WIP] soft non maximum supression
+  - [WIP] weighted boxes fusion
+
+- other utils
+  - TensorBoard 
+  - MLFlow
  
  
 ## Requirement
