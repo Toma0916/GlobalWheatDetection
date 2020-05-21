@@ -65,6 +65,7 @@ from utils.logger import TensorBoardLogger
 from utils.metric import calculate_score
 from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
+from utils.train_valid_split import train_valid_split
 
 
 def train_epoch():
@@ -85,6 +86,7 @@ def train_epoch():
         optimizer.step()
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
+
     logger.send_images(images, image_ids, target_boxes, None)
     logger.end_train_epoch()
 
@@ -112,17 +114,17 @@ def evaluate_epoch():
             outputs = postprocessing(outputs, config["valid"]) if 'valid' in config.keys() else outputs
             matric_score = calculate_score(outputs, targets_copied)
             logger.send_score(matric_score)
-
+            
     # 最後のevalのloopで生成されたものを保存する
     logger.send_images(images, image_ids, target_boxes, outputs)
     logger.end_valid_epoch()
 
 
 def update_dict(d, keys, value):
-        if len(keys) == 1:
-            d[keys[0]] = value 
-        else:
-            update_dict(d[keys[0]], keys[1:], value)
+    if len(keys) == 1:
+        d[keys[0]] = value 
+    else:
+        update_dict(d[keys[0]], keys[1:], value)
 
 
 def expand_json(d, keys=[]):
@@ -157,7 +159,7 @@ if __name__ == '__main__':
     SRC_DIR = Path('.').resolve()/'src'
     TRAIN_IMAGE_DIR = SRC_DIR/'train'
     TEST_IMAGE_DIR= SRC_DIR/'test'
-    DATAFRAME = convert_dataframe( pd.read_csv(str(SRC_DIR/'train.csv')))
+    DATAFRAME = convert_dataframe(pd.read_csv(str(SRC_DIR/'train.csv')))
     OUTPUT_DIR = Path('.').resolve()/'output'/config['general']['output_dirname']
 
     device = torch.device('cuda:0')
@@ -184,17 +186,8 @@ if __name__ == '__main__':
     torch.manual_seed(random_seed)  
     torch.cuda.manual_seed(random_seed)  
     
-    # prepare for training
-    image_ids = DATAFRAME['image_id'].unique()
-    image_num = len(image_ids)
-    image_ids = np.random.permutation(image_ids)
-
-    train_data_size = int(image_num * 0.8) if not(debug) else 100
-    valid_data_size = int(image_num - train_data_size) if not(debug) else 20
-
-    train_ids = image_ids[:train_data_size]
-    valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
-
+    # prepare data
+    train_ids, valid_ids = train_valid_split(DATAFRAME, config)
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
 
@@ -211,10 +204,13 @@ if __name__ == '__main__':
     # load model and make parallel
     model = get_model(config['model']).to(device)
     # model = torch.nn.DataParallel(model) 
+
+    # train setting
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
     scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
+    # log setting
     logger = TensorBoardLogger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, model_save_interval=model_save_interval)
 
     # training
