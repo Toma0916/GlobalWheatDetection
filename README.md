@@ -67,7 +67,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - [WIP] weighted boxes fusion
 
 - other utils
-  - TensorBoard 
+  - TensorBoard (run `tensorboard --logdir ./output` in root)
   - MLFlow (run `mlflow ui --port 5000` in root)
  
  
