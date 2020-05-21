@@ -83,7 +83,6 @@ def train_epoch():
 
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
-    
     logger.send_images(images, image_ids, target_boxes, None)
     logger.end_train_epoch()
 
@@ -108,7 +107,7 @@ def evaluate_epoch():
             # Start calculating scores for competition
             model.eval()
             outputs = model(images)
-            outputs = postprocessing(outputs, config["valid"])
+            outputs = postprocessing(outputs, config["valid"]) if 'valid' in config.keys() else outputs
             matric_score = calculate_score(outputs, targets_copied)
             logger.send_score(matric_score)
 

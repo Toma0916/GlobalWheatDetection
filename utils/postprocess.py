@@ -130,11 +130,14 @@ def postprocessing(outputs, config):
         outputs[i] = detached_output
 
     # score filter 
-    threshold_score = config['confidence_filter']['min_confidence']
-    if 0 < threshold_score:
-        outputs = filter_score(outputs, threshold_score)
+    if 'confidence_filter' in config.keys():
+        threshold_score = config['confidence_filter']['min_confidence']
+        if 0 < threshold_score:
+            outputs = filter_score(outputs, threshold_score)
 
     # non maximamu supression
+    if not 'non_maximum_supression' in config.keys():
+        config['non_maximum_supression'] = {'apply': False}
     if config['non_maximum_supression']['apply']:
         outputs = non_maximum_supression(outputs, **config['non_maximum_supression']['config'])
 
