@@ -27,6 +27,14 @@
     "train": {
         "batch_size": 8,
         "epochs": 10,
+        "random_annotation": {
+            "drop": {
+                "p": 0.0
+            },
+            "vibration": {
+                "max_ratio": 0.0
+            }
+        },
         "sampler": {
             "name": "balance_sources",
             "config": {
