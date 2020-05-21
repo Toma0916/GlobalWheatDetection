@@ -1,12 +1,12 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
-        "output_dirname": "sample",
+        "output_dirname": "koji/exp_006_balancesampling",
         "seed": 42,
-        "model_save_interval": 3,
+        "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
-            "min_bbox_size": 3000
+            "min_bbox_size": 90
         }
     },
     "model": {
@@ -19,13 +19,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 10,
-        "sampler": {
-            "name": "balance_sources",
-            "config": {
-                "strength": 1000
-            }
-        },
+        "epochs": 51,
         "optimizer": {
             "name": "adam",
             "config": {
@@ -40,26 +34,19 @@
             }
         },
         "scheduler": {
-            "name": "Step",
+            "name": "WarmupCosineAnnealing",
             "config": {
-                "step_size": 10,
-                "gamma": 0.1,
-                "last_epoch": -1
+                "T_max": 30,
+                "warmup_iters": 8,
+                "eta_min": 1e-6
             }
         },
         "augment": {
             "test_time_augment": false
-        }
-    },
-    "valid": {
-        "apply_bbox_filter": true,
-        "confidence_filter": {
-            "min_confidence": 0.2
         },
-        "post_processor": {
-            "name": "nms",
-            "config": {
-                "threshold": 0.2
+        "sampler": {
+            "balance_sources": {
+                "strength": 10000
             }
         }
     }

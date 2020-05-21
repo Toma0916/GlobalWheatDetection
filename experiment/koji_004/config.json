@@ -1,12 +1,12 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
-        "output_dirname": "sample",
+        "output_dirname": "koji/exp_004",
         "seed": 42,
-        "model_save_interval": 3,
+        "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
-            "min_bbox_size": 3000
+            "min_bbox_size": 90
         }
     },
     "model": {
@@ -19,13 +19,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 10,
-        "sampler": {
-            "name": "balance_sources",
-            "config": {
-                "strength": 1000
-            }
-        },
+        "epochs": 51,
         "optimizer": {
             "name": "adam",
             "config": {
@@ -48,19 +42,10 @@
             }
         },
         "augment": {
+            "mosaic": {
+                "p": 0.5
+            },
             "test_time_augment": false
-        }
-    },
-    "valid": {
-        "apply_bbox_filter": true,
-        "confidence_filter": {
-            "min_confidence": 0.2
-        },
-        "post_processor": {
-            "name": "nms",
-            "config": {
-                "threshold": 0.2
-            }
         }
     }
 }
