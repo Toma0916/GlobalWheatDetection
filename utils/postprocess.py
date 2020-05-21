@@ -175,8 +175,13 @@ def postprocessing(outputs, config):
 
     # score filter 
     threshold_score = config['confidence_filter']['min_confidence']
-    if 0 < threshold_score:
-        outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])  # deep copyいらないかも
+    outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])
+
+    # non maximamu supression
+    if not 'non_maximum_supression' in config.keys():
+        config['non_maximum_supression'] = {'apply': False}
+    if config['non_maximum_supression']['apply']:
+        outputs = non_maximum_supression(outputs, **config['non_maximum_supression']['config'])
 
     ensemble_boxes_method_list = {
         "nms": non_maximum_supression,
