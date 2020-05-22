@@ -20,14 +20,14 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backbone": "fasterrcnn_resnet50_fpn",
+            "backbone": "resnet50",
             "class_num": 2,
             "pretrained": true
         }
     },
     "train": {
         "batch_size": 8,
-        "epochs": 2,
+        "epochs": 10,
         "random_annotation": {
             "drop": {
                 "p": 0.0
