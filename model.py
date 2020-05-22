@@ -86,6 +86,7 @@ class Model:
         self.model_name = config['name']
         self.model = model_list[config['name']](**config['config'])
         self.is_train = True
+        self.device = None
 
     def go(self, images, targets=None):
         if self.model_name == 'faster_rcnn':
@@ -98,12 +99,14 @@ class Model:
         elif self.model_name == 'efficient_det':
             boxes = [target['boxes'] for target in targets]
             labels = [target['labels'] for target in targets]
-            print(boxes, labels)
+            # images = [image.detach() for image in images]
+            images = torch.stack(images).to(self.device).float()
             loss = self.model(images, boxes, labels)
         return loss_dict
 
     def to(self, device):
         self.model.to(device)
+        self.device = device
         return self
 
     def eval(self):
