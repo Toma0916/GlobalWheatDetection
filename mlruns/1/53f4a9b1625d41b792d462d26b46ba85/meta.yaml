@@ -1,0 +1,15 @@
+artifact_uri: file:///home/toma/kaggle/GlobalWheatDetection/mlruns/1/53f4a9b1625d41b792d462d26b46ba85/artifacts
+end_time: 1590117697572
+entry_point_name: ''
+experiment_id: '1'
+lifecycle_stage: deleted
+name: ''
+run_id: 53f4a9b1625d41b792d462d26b46ba85
+run_uuid: 53f4a9b1625d41b792d462d26b46ba85
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1590117673982
+status: 3
+tags: []
+user_id: toma
