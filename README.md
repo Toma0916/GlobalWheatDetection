@@ -21,7 +21,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 
 - model
   -  Faster RCNN
-  -  
+  -  EfficientDet (based on https://www.kaggle.com/shonenkov/training-efficientdet）
   -
  
 - optimizer
