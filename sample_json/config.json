@@ -2,7 +2,8 @@
     "debug": true,
     "general": {
         "output_dirname": "sample",
-        "seed": 42,
+        "experiment_name": "sample",
+        "seed": 99,
         "model_save_interval": 3,
         "valid_image_save_interval": 3,
         "bbox_filter": {
@@ -26,7 +27,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 10,
+        "epochs": 2,
         "random_annotation": {
             "drop": {
                 "p": 0.0

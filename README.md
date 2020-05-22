@@ -21,12 +21,12 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 
 - model
   -  Faster RCNN
-  -  SGD
+  -  
   -
  
 - optimizer
   - Adam
-  -
+  - SGD
   - 
 
 - scheduler
@@ -38,6 +38,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - WarmupCosineAnnealingLR
   - PiecewiseCyclicalLinearLR
   - PolyLR
+  - WarmupCosineAnnealingRestartsLR
   
 - augmentations
   - HorizontalFlip (horizontal_flip)
@@ -58,7 +59,21 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - GaussNoise (gauss_noise)
   - Cutout (cutout)
   - Mosaic (mosaic)
+<<<<<<< HEAD
  
+=======
+
+- post processing
+  - filtering by confidence score
+  - non maximum supression
+  - [WIP] soft non maximum supression
+  - [WIP] weighted boxes fusion
+
+- other utils
+  - TensorBoard (run `tensorboard --logdir ./output` in root)
+  - MLFlow (run `mlflow ui --port 5000` in root)
+
+>>>>>>> 8563dfb53f8ddfc5c5c2c838dba1d07d5cdd5884
  
 ## Requirement
 - numba=0.49.1 
@@ -69,6 +84,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - pytorch=1.5.0 
 - torchvision=0.6.0 
 - albumentations=0.4.5
+- mlflow=1.8.0 
 
 ## Usage
 Make json file about train setting and run hogehoge.sh with json path.
