@@ -1,58 +1,58 @@
 {
-    "debug": true,
+    "debug": [true, "debugg"],
     "general": {
-        "output_dirname": "sample",
-        "experiment_name": "sample",
-        "seed": 42,
-        "model_save_interval": 5,
-        "valid_image_save_interval": 5,
+        "output_dirname": ["sample", "output_dirname"],
+        "experiment_name": ["sample", "output_dirname"],
+        "seed": [42, "seed"],
+        "model_save_interval": [5, "model_save_interval"],
+        "valid_image_save_interval": [5, "valid_image_save_interval"],
         "bbox_filter": {
-            "max_bbox_size": 10000000,
-            "min_bbox_size": 0
+            "max_bbox_size": [10000000, "max_bbox_size"],
+            "min_bbox_size": [0, "min_bbox_size"]
         },
         "train_valid_split": {
-            "name": "random",
+            "name": ["random", "train_valid_split"],
             "config": {}
         }
     },
     "model": {
-        "name": "faster_rcnn", 
+        "name": ["faster_rcnn", "model"], 
         "config": {}
     },
     "train": {
-        "batch_size": 8,
-        "epochs": 10,
+        "batch_size": [8, "batch_size"],
+        "epochs": [10, "epochs"],
         "random_annotation": {
             "drop": {
-                "p": 0.0
+                "p": [0.0, "rand_annot_drop_p"]
             },
             "vibration": {
-                "max_ratio": 0.0
+                "max_ratio": [0.0, "rand_annot_vibr_maxratio"]
             }
         },
         "sampler": {
-            "name": "",
+            "name": ["", "sampler"],
             "config": {}
         },
         "optimizer": {
-            "name": "",
+            "name": ["", "optimizer"],
             "config": {}
         },
         "scheduler": {
-            "name": "",
+            "name": ["", "scheduler"],
             "config": {}
         },
         "augment": {
-            "test_time_augment": false
+            "test_time_augment": [false, "tta"]
         }
     },
     "valid": {
-        "apply_bbox_filter": false,
+        "apply_bbox_filter": [false, "bbox_size_filter_invalid"],
         "confidence_filter": {
-            "min_confidence": 0.0
+            "min_confidence": [0.0, "confid_filter"]
         },
         "post_processor": {
-            "name": ""
+            "name": ["", "postprocessor"]
         }
     }
 }
