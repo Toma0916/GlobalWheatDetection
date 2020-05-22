@@ -54,7 +54,7 @@ from albumentations.core.transforms_interface import DualTransform
 # --- mlflow ---
 import mlflow
 
-from utils.functions import get_lr, dict_flatten, randomname
+from utils.functions import get_lr, params_to_mlflow_format, randomname
 
 
 class LossAverager:
@@ -183,7 +183,7 @@ class Logger:
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
 
-        mlflow.log_params(dict_flatten(config))
+        mlflow.log_params(params_to_mlflow_format(config))
 
         # import pdb; pdb.set_trace()
 
