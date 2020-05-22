@@ -59,9 +59,6 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - GaussNoise (gauss_noise)
   - Cutout (cutout)
   - Mosaic (mosaic)
-<<<<<<< HEAD
- 
-=======
 
 - post processing
   - filtering by confidence score
@@ -72,8 +69,6 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - other utils
   - TensorBoard (run `tensorboard --logdir ./output` in root)
   - MLFlow (run `mlflow ui --port 5000` in root)
-
->>>>>>> 8563dfb53f8ddfc5c5c2c838dba1d07d5cdd5884
  
 ## Requirement
 - numba=0.49.1 
