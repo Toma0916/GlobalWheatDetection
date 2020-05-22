@@ -49,6 +49,20 @@ import sklearn.metrics
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
+# --- EfficientDet ---
+from utils.effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
+from utils.effdet.efficientdet import HeadNet
+
+
+def efficientdet_model(class_num=1, image_size=1024):
+    config = get_efficientdet_config('tf_efficientdet_d5')
+    net = EfficientDet(config, pretrained_backbone=False)
+    # checkpoint = torch.load('../input/efficientdet/efficientdet_d5-ef44aea8.pth')
+    # net.load_state_dict(checkpoint)
+    config.num_classes = class_num
+    config.image_size = image_size
+    net.class_net = HeadNet(config, num_outputs=config.num_classes, norm_kwargs=dict(eps=.001, momentum=.01))
+    return DetBenchTrain(net, config)
 
 def fasterrcnn_model(backbone, class_num=2, pretrained=True):
 
@@ -63,11 +77,11 @@ def fasterrcnn_model(backbone, class_num=2, pretrained=True):
     return model 
 
 
-
 def get_model(config):
 
     model_list = {
         'faster_rcnn': fasterrcnn_model,
+        'efficient_det': efficientdet_model
     }
 
     assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
