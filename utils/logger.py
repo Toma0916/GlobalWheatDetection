@@ -91,22 +91,36 @@ class LossAverager:
 
 class MetricAverager:
     def __init__(self):
-        self.current_total = 0.0
+        self.iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]
+        self.current_total = {
+            'original': np.zeros(len(self.iou_thresholds)),
+            'processed': np.zeros(len(self.iou_thresholds))
+        }
         self.iterations = 0.0
 
-    def send(self, value):
-        self.current_total += value
+    def send(self, values, type):
+        self.current_total[type] += values
         self.iterations += 1
 
     @property
     def value(self):
         if self.iterations == 0:
-            return 0
+            return {
+                'original': 0,
+                'processed': 0
+            }
         else:
-            return 1.0 * self.current_total / self.iterations
+            return {
+                'original': 1.0 * self.current_total['original'] / self.iterations,
+                'processed': 1.0 * self.current_total['processed'] / self.iterations
+            }
+            
 
     def reset(self):
-        self.current_total = 0.0
+        self.current_total = {
+            'original': np.zeros(len(self.iou_thresholds)),
+            'processed': np.zeros(len(self.iou_thresholds))
+        }
         self.iterations = 0.0
 
 
@@ -175,7 +189,7 @@ class Logger:
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.mode = 'train'
 
-        self.initialize_mlflow(config)
+        # self.initialize_mlflow(config)
 
 
     def initialize_mlflow(self, config):
@@ -189,9 +203,7 @@ class Logger:
 
     def finish_training(self):
         self.writer.close()
-        mlflow.end_run()
-
-
+        # mlflow.end_run()
 
 
     def start_train_epoch(self):
@@ -202,7 +214,6 @@ class Logger:
         # save leaering late for each epoch
         learning_rate = get_lr(self.optimizer)
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
-
 
     def end_train_epoch(self):
         for key, value in self.train_loss_epoch_history.value.items():
@@ -220,7 +231,7 @@ class Logger:
             filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
             torch.save(self.model.state_dict(), filepath)
         
-        mlflow.log_metrics({'train/%s' % k: v for k, v in self.train_loss_epoch_history.value.items()})
+        # mlflow.log_metrics({'train/%s' % k: v for k, v in self.train_loss_epoch_history.value.items()})
 
     def start_valid_epoch(self):
         self.mode = 'valid'
@@ -230,18 +241,23 @@ class Logger:
 
 
     def end_valid_epoch(self):
-        for key, value in self.valid_loss_epoch_history.value.items():
-            self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
-        self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
 
+        for key, value in self.valid_loss_epoch_history.value.items():
+            self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)    
+        iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]
+        metrics_scores = self.valid_metric_epoch_history.value
+        for key, values in metrics_scores.items():
+            for i, value in enumerate(values):
+                self.writer.add_scalar('valid/%s_%.2f' % (key, iou_thresholds[i]), value, self.trained_epoch)
+            
         # save image
         if ((self.trained_epoch_this_run - 1)) % self.valid_image_save_interval == 0:
             images = self.image_epoch_history.painted_images
             for key, value in images.items():
                 self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
         
-        mlflow.log_metrics({'valid/%s' % k: v for k, v in self.valid_loss_epoch_history.value.items()})
-        mlflow.log_metrics({'valid/score': self.valid_metric_epoch_history.value})
+        # mlflow.log_metrics({'valid/%s' % k: v for k, v in self.valid_loss_epoch_history.value.items()})
+        # mlflow.log_metrics({'valid/score': self.valid_metric_epoch_history.value})
 
 
     def send_loss(self, loss_dict):
@@ -251,11 +267,12 @@ class Logger:
             self.valid_loss_epoch_history.send(loss_dict)
 
 
-    def send_score(self, score):
+    def send_score(self, scores, score_type):
         """
         score: float
         """
-        self.valid_metric_epoch_history.send(score)
+        assert score_type in ['original', 'processed']
+        self.valid_metric_epoch_history.send(scores, score_type)
     
 
     def send_images(self, images, image_ids, target_boxes=None, outputs=None):

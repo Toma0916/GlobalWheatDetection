@@ -62,7 +62,7 @@ from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.logger import Logger
 from utils.functions import convert_dataframe, format_config_by_baseconfig
-from utils.metric import calculate_score
+from utils.metric import calculate_score_for_each
 from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
@@ -113,9 +113,12 @@ def evaluate_epoch():
             # Start calculating scores for competition
             model.eval()
             outputs = model(images)
+            original_matric_scores = calculate_score_for_each(copy.deepcopy(outputs), targets_copied, is_detached=False)  # deep copy必要
             outputs = postprocessing(outputs, config["valid"]) if 'valid' in config.keys() else outputs
-            matric_score = calculate_score(outputs, targets_copied)
-            logger.send_score(matric_score)
+            processed_matric_scores = calculate_score_for_each(outputs, targets_copied)
+                
+            logger.send_score(original_matric_scores, 'original')
+            logger.send_score(processed_matric_scores, 'processed')
             
     # 最後のevalのloopで生成されたものを保存する
     logger.send_images(images, image_ids, target_boxes, outputs)
