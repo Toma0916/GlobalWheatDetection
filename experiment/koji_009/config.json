@@ -2,6 +2,7 @@
     "debug": false,
     "general": {
         "output_dirname": "koji/exp_009",
+        "experiment_name": "koji",
         "seed": 42,
         "model_save_interval": 10,
         "bbox_filter": {
@@ -42,10 +43,10 @@
             }
         },
         "augment": {
-            "horizontal_frip": {
+            "horizontal_flip": {
                 "p": 0.5
             },
-            "vertical_frip": {
+            "vertical_flip": {
                 "p": 0.5
             },
             "random_rotate_90": {

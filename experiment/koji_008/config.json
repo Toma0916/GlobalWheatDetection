@@ -39,10 +39,10 @@
             }
         },
         "augment": {
-            "horizontal_frip": {
+            "horizontal_flip": {
                 "p": 0.5
             },
-            "vertical_frip": {
+            "vertical_flip": {
                 "p": 0.5
             },
             "random_rotate_90": {
