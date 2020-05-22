@@ -111,8 +111,7 @@ def vibrate_bboxes_with_ratio(boxes, ratio, image_size):
     
     return boxes
 
-
-def dict_flatten(target, separator='_'):
+def dict_flatten_old(target, target_base, separator='_'):
     if not isinstance(target, dict):
         raise ValueError
     
@@ -121,8 +120,10 @@ def dict_flatten(target, separator='_'):
     
     dct = {}
     for key, value in target.items():
+        if key == 'config':
+            continue
         if isinstance(value, dict):
-            for k, v in dict_flatten(value, separator).items():
+            for k, v in dict_flatten_old(value, target_base[key], separator).items():
                 if type(v) is list:
                     v = ' '.join(sorted(v))
                 dct[str(key) + separator + str(k)] = v
@@ -133,6 +134,32 @@ def dict_flatten(target, separator='_'):
             
     return dct
 
+def dict_flatten(target, target_base, separator='_'):
+    if not isinstance(target, dict):
+        raise ValueError
+    
+    dct = {}
+    for key, value in target.items():
+        if key == 'config':
+            continue
+        if isinstance(value, dict):
+            if 'p' in value.keys():
+                dct[key] = value['p']
+            else:
+                for k, v in dict_flatten(value, target_base[key], separator).items():
+                    dct[k] = v
+        else:
+            if key in target_base.keys():
+                dct[target_base[key][1]] = value
+            else:
+                dct[key] = value
+            
+    return dct
+
+def params_to_mlflow_format(d, base_config_path='./sample_json/BASE_CONFIG.json'):
+    with open(base_config_path, 'r') as f:
+        d_base = json.load(f)
+    return dict_flatten(d, d_base)
 
 def randomname(n):
    randlst = [random.choice(string.ascii_letters + string.digits) for i in range(n)]
@@ -147,7 +174,7 @@ def func(d_base, d):
             if k != 'config':
                 d[k] = func(d_base[k], d[k])
         elif not k in d.keys():
-            d[k] = d_base[k]
+            d[k] = d_base[k][0]
     return d
 
   
