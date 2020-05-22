@@ -1,5 +1,5 @@
 {
-    "debug": [true, "debugg"],
+    "debug": [true, "debug"],
     "general": {
         "prefix": "gn",
         "output_dirname": ["sample", "output_dirname"],
