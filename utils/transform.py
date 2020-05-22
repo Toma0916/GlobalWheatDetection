@@ -150,13 +150,13 @@ class Transform:
             self.clahe = config['clahe'] if ('clahe' in config) else {'p': 0.0}
             self.channel_shuffle = config['channel_shuffle'] if ('channel_shuffle' in config) else {'p': 0.0} 
             self.random_gamma = config['random_gamma'] if ('random_gamma' in config) else {'p': 0.0}
-            self.hue_saturation_value = config['hue_saturation_value'] if ('hue_saturation_value' in config) else {'p': 0.0}
+            self.hsv = config['hsv'] if ('hsv' in config) else {'p': 0.0}
             self.rgb_shift = config['rgb_shift'] if ('rgb_shift' in config) else {'p': 0.0}
             self.random_brightness = config['random_brightness'] if ('random_brightness' in config) else {'p': 0.0}
             self.random_contrast = config['random_contrast'] if ('random_contrast' in config) else {'p': 0.0}
             
             # noise系
-            self.gaussian_noise = config['gaussian_noise'] if ('gaussian_noise' in config) else {'p': 0.0}
+            self.gauss_noise = config['gauss_noise'] if ('gauss_noise' in config) else {'p': 0.0}
             self.cutout = config['cutout'] if ('cutout' in config) else {'p': 0.0}
 
         else:
@@ -175,11 +175,11 @@ class Transform:
             self.clahe = {'p': 0.0}
             self.channel_shuffle = {'p': 0.0}
             self.random_gamma = {'p': 0.0}
-            self.hue_saturation_value = {'p': 0.0}
+            self.hsv = {'p': 0.0}
             self.rgb_shift = {'p': 0.0}
             self.random_brightness = {'p': 0.0}
             self.random_contrast = {'p': 0.0}
-            self.gaussian_noise = {'p': 0.0}
+            self.gauss_noise = {'p': 0.0}
             self.cutout = {'p': 0.0}
 
 
@@ -219,7 +219,7 @@ class Transform:
 
         # for albumentation transforms
         sample = {
-            'image': image,
+            'image': (image*255).astype(np.uint8),
             'bboxes': target['boxes'],
             'labels': target['labels']
         }
@@ -239,11 +239,11 @@ class Transform:
             A.CLAHE(**self.clahe),
             A.ChannelShuffle(**self.channel_shuffle),
             A.RandomGamma(**self.random_gamma),
-            A.HueSaturationValue(**self.hue_saturation_value),
+            A.HueSaturationValue(**self.hsv),
             A.RGBShift(**self.rgb_shift),
             A.RandomBrightness(**self.random_brightness),
             A.RandomContrast(**self.random_contrast),
-            A.GaussNoise(**self.gaussian_noise),
+            A.GaussNoise(**self.gauss_noise),
             A.Cutout(**self.cutout),
             ToTensorV2(p=1.0)  # convert numpy image to tensor
             ], 
@@ -251,6 +251,6 @@ class Transform:
         )
 
         sample = albumentation_transforms(**sample)
-        image = sample['image']
+        image = (sample['image'].type(torch.float32))/255
         target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
         return image, target, image_id
