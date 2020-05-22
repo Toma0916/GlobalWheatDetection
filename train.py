@@ -75,13 +75,11 @@ def train_epoch():
     model.train()
     logger.start_train_epoch()
     for images, targets, image_ids in tqdm.tqdm(train_data_loader):
-        images = list(image.float().to(device) for image in images)
 
         # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
         targets_copied = copy.deepcopy(targets)
         target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
-        targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        loss_dict = model.go(images, targets)
+        loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
         optimizer.zero_grad()
         losses.backward()

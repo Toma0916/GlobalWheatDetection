@@ -54,7 +54,7 @@ from utils.effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from utils.effdet.efficientdet import HeadNet
 
 
-def efficientdet_model(class_num=1, image_size=1024):
+def efficientdet_model(class_num=1, image_size=512):
     config = get_efficientdet_config('tf_efficientdet_d5')
     net = EfficientDet(config, pretrained_backbone=False)
     # checkpoint = torch.load('../input/efficientdet/efficientdet_d5-ef44aea8.pth')
@@ -88,20 +88,23 @@ class Model:
         self.is_train = True
         self.device = None
 
-    def go(self, images, targets=None):
+    def __call__(self, images, targets=None):
         if self.model_name == 'faster_rcnn':
             if self.is_train:
+                images = list(image.float().to(self.device) for image in images)
+                targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
                 loss_dict = self.model(images, targets)
                 return loss_dict
             else:
+                images = list(image.float().to(self.device) for image in images)
                 targets = self.model(images)
                 return targets
         elif self.model_name == 'efficient_det':
-            boxes = [target['boxes'] for target in targets]
-            labels = [target['labels'] for target in targets]
-            # images = [image.detach() for image in images]
+            boxes = [target['boxes'].to(self.device).float() for target in targets]
+            labels = [target['labels'].to(self.device).float() for target in targets]
             images = torch.stack(images).to(self.device).float()
             loss = self.model(images, boxes, labels)
+            loss_dict = None
         return loss_dict
 
     def to(self, device):
@@ -119,6 +122,9 @@ class Model:
 
     def parameters(self):
         return self.model.parameters()
+    
+    def state_dict(self):
+        return self.model.state_dict()
 
 def get_model(config):
 
