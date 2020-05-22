@@ -91,22 +91,36 @@ class LossAverager:
 
 class MetricAverager:
     def __init__(self):
-        self.current_total = 0.0
+        self.iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]
+        self.current_total = {
+            'original': np.zeros(len(self.iou_thresholds)),
+            'processed': np.zeros(len(self.iou_thresholds))
+        }
         self.iterations = 0.0
 
-    def send(self, value):
-        self.current_total += value
+    def send(self, values, type):
+        self.current_total[type] += values
         self.iterations += 1
 
     @property
     def value(self):
         if self.iterations == 0:
-            return 0
+            return {
+                'original': 0,
+                'processed': 0
+            }
         else:
-            return 1.0 * self.current_total / self.iterations
+            return {
+                'original': 1.0 * self.current_total['original'] / self.iterations,
+                'processed': 1.0 * self.current_total['processed'] / self.iterations
+            }
+            
 
     def reset(self):
-        self.current_total = 0.0
+        self.current_total = {
+            'original': np.zeros(len(self.iou_thresholds)),
+            'processed': np.zeros(len(self.iou_thresholds))
+        }
         self.iterations = 0.0
 
 
@@ -116,15 +130,19 @@ class ImageStorage():
         self.image_ids = None
         self.images = None
         self.target_boxes = None
-        self.predict_boxes = None
-        self.predict_scores = None
+        self.original_predict_boxes = None
+        self.original_predict_scores = None
+        self.processed_predict_boxes = None
+        self.processed_predict_scores = None
 
-    def send(self, image_ids, images, target_boxes, predict_boxes, predict_scores):
+    def send(self, image_ids, images, target_boxes, original_predict_boxes, original_predict_scores, processed_predict_boxes, processed_predict_scores):
         self.image_ids = image_ids
         self.images = images
         self.target_boxes = target_boxes
-        self.predict_boxes = predict_boxes
-        self.predict_scores = predict_scores
+        self.original_predict_boxes = original_predict_boxes
+        self.original_predict_scores = original_predict_scores
+        self.processed_predict_boxes = processed_predict_boxes
+        self.processed_predict_scores = processed_predict_scores
 
     @property
     def painted_images(self):
@@ -137,11 +155,19 @@ class ImageStorage():
                 for j in range(self.target_boxes[i].shape[0]):
                     box = self.target_boxes[i][j]
                     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
-            if (self.predict_boxes is not None) and (self.predict_scores is not None):            
-                for j in range(self.predict_boxes[i].shape[0]):
-                    box = self.predict_boxes[i][j]
+
+            if (self.original_predict_boxes is not None) and (self.original_predict_scores is not None):            
+                for j in range(self.original_predict_scores[i].shape[0]):
+                    box = self.original_predict_boxes[i][j]
+                    cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 220/255, 0), 1)
+                    cv2.putText(image, '%f' % self.original_predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (220/255, 220/255, 0), 1, cv2.LINE_AA)
+        
+            if (self.processed_predict_boxes is not None) and (self.processed_predict_scores is not None):            
+                for j in range(self.processed_predict_scores[i].shape[0]):
+                    box = self.processed_predict_boxes[i][j]
                     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
-                    cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+                    cv2.putText(image, '%f' % self.processed_predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+
             id_image_dict[self.image_ids[i]] = image
         return id_image_dict    
 
@@ -149,8 +175,10 @@ class ImageStorage():
         self.image_ids = None
         self.images = None
         self.target_boxes = None
-        self.predict_boxes = None
-        self.predict_scores = None
+        self.original_predict_boxes = None
+        self.original_predict_scores = None
+        self.processed_predict_boxes = None
+        self.processed_predict_scores = None
 
 
 
@@ -182,16 +210,12 @@ class Logger:
         # mlflow
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
-
         mlflow.log_params(params_to_mlflow_format(config))
-
-        # import pdb; pdb.set_trace()
+        mlflow.log_artifact(str(self.save_dir/"config.json"))
 
     def finish_training(self):
         self.writer.close()
         mlflow.end_run()
-
-
 
 
     def start_train_epoch(self):
@@ -203,10 +227,10 @@ class Logger:
         learning_rate = get_lr(self.optimizer)
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
 
-
     def end_train_epoch(self):
         for key, value in self.train_loss_epoch_history.value.items():
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
+            mlflow.log_metrics({'tr_%s' % (key.replace('loss', 'ls')) : value})
         self.trained_epoch += 1
         self.trained_epoch_this_run += 1
 
@@ -220,8 +244,6 @@ class Logger:
             filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
             torch.save(self.model.state_dict(), filepath)
         
-        mlflow.log_metrics({'train/%s' % k: v for k, v in self.train_loss_epoch_history.value.items()})
-
     def start_valid_epoch(self):
         self.mode = 'valid'
         self.valid_loss_epoch_history.reset()
@@ -230,9 +252,21 @@ class Logger:
 
 
     def end_valid_epoch(self):
+
         for key, value in self.valid_loss_epoch_history.value.items():
-            self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)        
-        self.writer.add_scalar('valid/score', self.valid_metric_epoch_history.value, self.trained_epoch)
+            self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)    
+            mlflow.log_metrics({'val_%s' % (key.replace('loss', 'ls')) : value})
+
+        iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]
+        metrics_scores = self.valid_metric_epoch_history.value
+        for key, values in metrics_scores.items():
+            scores = []
+            for i, value in enumerate(values):
+                scores.append(value)
+                self.writer.add_scalar('score/%s_%.2f' % (key, iou_thresholds[i]), value, self.trained_epoch)
+                mlflow.log_metrics({'score_%s_%.2f' % ('org' if key == 'original' else 'prc' , iou_thresholds[i]): value})
+            self.writer.add_scalar('score/%s_average' % (key), sum(scores)/len(scores), self.trained_epoch)
+            mlflow.log_metrics({'score_%s_avg' % ('org' if key == 'original' else 'prc'):  sum(scores)/len(scores)})
 
         # save image
         if ((self.trained_epoch_this_run - 1)) % self.valid_image_save_interval == 0:
@@ -240,9 +274,6 @@ class Logger:
             for key, value in images.items():
                 self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
         
-        mlflow.log_metrics({'valid/%s' % k: v for k, v in self.valid_loss_epoch_history.value.items()})
-        mlflow.log_metrics({'valid/score': self.valid_metric_epoch_history.value})
-
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':
@@ -251,18 +282,22 @@ class Logger:
             self.valid_loss_epoch_history.send(loss_dict)
 
 
-    def send_score(self, score):
+    def send_score(self, scores, score_type):
         """
         score: float
         """
-        self.valid_metric_epoch_history.send(score)
+        assert score_type in ['original', 'processed']
+        self.valid_metric_epoch_history.send(scores, score_type)
     
 
-    def send_images(self, images, image_ids, target_boxes=None, outputs=None):
+    def send_images(self, images, image_ids, target_boxes=None, original_outputs=None, processed_outputs=None):
         images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
-        predict_boxes = [output['boxes'] for output in outputs] if (outputs is not None) else None
-        predict_scores = [output['scores'] for output in outputs] if (outputs is not None) else None
-        self.image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)
+        original_predict_boxes = [output['boxes'] for output in original_outputs] if (original_outputs is not None) else None
+        original_predict_scores = [output['scores'] for output in original_outputs] if (original_outputs is not None) else None
+        processed_predict_boxes = [output['boxes'] for output in processed_outputs] if (processed_outputs is not None) else None
+        processed_predict_scores = [output['scores'] for output in processed_outputs] if (processed_outputs is not None) else None
+
+        self.image_epoch_history.send(image_ids, images, target_boxes, original_predict_boxes, original_predict_scores, processed_predict_boxes, processed_predict_scores)
 
 
 

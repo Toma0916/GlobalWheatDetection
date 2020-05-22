@@ -2,4 +2,6 @@
 /output
 *.pyc
 
-/mlruns/1
+# sampleの実験は共有しない
+/mlruns/1/*
+!/mlruns/1/meta.yaml

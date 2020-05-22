@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from numba import jit
 from typing import List, Union, Tuple
 
+from utils.functions import detach_outputs
+
 
 @jit(nopython=True)
 def calculate_iou(gt, pr, form='pascal_voc') -> float:
@@ -170,31 +172,35 @@ def calculate_image_precision(gts, preds, thresholds = (0.5, ), form = 'coco') -
         (float) Precision
     """
     n_threshold = len(thresholds)
-    image_precision = 0.0
     ious = np.ones((len(gts), len(preds))) * -1
 
+    precision_each_iou = []
     for threshold in thresholds:
         precision_at_threshold = calculate_precision(gts, preds, threshold=threshold,
                                                      form=form, ious=ious)
-        image_precision += precision_at_threshold / n_threshold
+        precision_each_iou.append(precision_at_threshold)
+    
+    return precision_each_iou
 
-    return image_precision
 
 
-
-def calculate_score(outputs, targets):
+def calculate_score_for_each(outputs, targets):
     """
     calculate score for batch
     """
+
+    outputs = detach_outputs(outputs)
+
     iou_thresholds = numba.typed.List()
     for x in [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]:
         iou_thresholds.append(x)
-    image_precisions = np.zeros(len(outputs))
+    image_precisions = np.zeros((len(outputs), len(iou_thresholds)))
     for i in range(len(outputs)):
         image_precision = calculate_image_precision(outputs[i]['boxes'],
                                                     targets[i]['boxes'].cpu().detach().numpy(),
                                                     thresholds=iou_thresholds,
                                                     form='pascal_voc')
-        image_precisions[i] = image_precision
-    return np.mean(image_precisions)
+        image_precisions[i, :] = image_precision
+                
+    return np.mean(image_precisions, axis=0)
         

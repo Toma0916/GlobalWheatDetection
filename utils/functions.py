@@ -187,3 +187,19 @@ def format_config_by_baseconfig(config, base_config_path='./sample_json/BASE_CON
     with open(base_config_path, 'r') as f:
         base_config = json.load(f)
     return func(copy.deepcopy(base_config), copy.deepcopy(config))
+
+
+
+def detach_outputs(outputs):
+
+    if type(outputs[0]['boxes']) is np.ndarray:
+        return outputs
+
+    # detach and to cpu
+    for i, output in enumerate(outputs):
+        detached_output = {}
+        detached_output['boxes'] = output['boxes'].cpu().detach().numpy()
+        detached_output['labels'] = output['labels'].cpu().detach().numpy()
+        detached_output['scores'] = output['scores'].cpu().detach().numpy()
+        outputs[i] = detached_output
+    return outputs
