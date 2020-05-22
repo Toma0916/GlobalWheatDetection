@@ -141,19 +141,20 @@ def dict_flatten(target, target_base, separator='_'):
     dct = {}
     idx = 0
     for key, value in target.items():
-        if key == 'config':
+        if key == 'config' or key == 'prefix':
             continue
         if isinstance(value, dict):
+            prfx = target_base[key]['prefix']+separator if 'prefix' in target_base[key].keys() else ''
             if 'p' in value.keys():
-                dct[chr(ord('a') + idx)+separator + key] = value['p']
+                dct[prfx + key] = value['p']
             else:
                 for k, v in dict_flatten(value, target_base[key], separator).items():
-                    dct[chr(ord('a') + idx) + k] = v
+                    dct[prfx + k] = v
         else:
             if key in target_base.keys():
-                dct[chr(ord('a') + idx)+separator + target_base[key][1]] = value
+                dct[target_base[key][1]] = value
             else:
-                dct[chr(ord('a') + idx)+separator + key] = value
+                dct[key] = value
         idx += 1
     return dct
 
@@ -172,10 +173,13 @@ def func(d_base, d):
         if isinstance(v, dict):
             if not k in d.keys():
                 d[k] = {}
-            if k != 'config':
+            if k != 'config' and k != 'p':
                 d[k] = func(d_base[k], d[k])
         elif not k in d.keys():
-            d[k] = d_base[k][0]
+            if isinstance(v, list):
+                d[k] = d_base[k][0]
+            else:
+                d[k] = d_base[k]
     return d
 
   
