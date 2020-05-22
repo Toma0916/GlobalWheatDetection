@@ -37,7 +37,7 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
-
+from torchvision.models.detection.backbone_utils import resnet_fpn_backbone
 
 # --- models ---
 from sklearn import preprocessing
@@ -53,17 +53,33 @@ from albumentations.core.transforms_interface import DualTransform
 def fasterrcnn_model(backbone, class_num=2, pretrained=True):
 
     backbone_list = {
-        'fasterrcnn_resnet50_fpn': torchvision.models.detection.fasterrcnn_resnet50_fpn
+        'resnet18': True,
+        'resnet34': True,
+        'resnet50': True,
+        'resnet101': True,  # batch_size=4は乗る
+        'resnet152': True,   # batch_size=4は乗る
+        'resnext50_32x4d': True,
+        'resnext101_32x8d': True,
+        # 'wide_resnet50_2': True,  # エラー（分からん
+        # 'wide_resnet101_2': True
     }
 
     assert backbone in backbone_list.keys(), 'Backbone\'s name is not valid. Available backbones: %s' % str(list(backbone_list.keys()))
-    model = backbone_list[backbone](pretrained=pretrained)
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, class_num)
+
+    backbone = resnet_fpn_backbone(backbone, pretrained=pretrained)
+
+    anchor_sizes = ((32,), (64,), (128,), (256,), (512,))
+    aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+    anchor_generator = AnchorGenerator(sizes=anchor_sizes, aspect_ratios=aspect_ratios)
+
+    roi_pooler = torchvision.ops.MultiScaleRoIAlign(featmap_names=['0', '1', '2', '3'], output_size=7, sampling_ratio=2)
+
+    model = FasterRCNN(backbone, num_classes=class_num, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler)
+
     return model 
 
 
-
+    
 def get_model(config):
 
     model_list = {
