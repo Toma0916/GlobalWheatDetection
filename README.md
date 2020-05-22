@@ -41,24 +41,24 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - WarmupCosineAnnealingRestartsLR
   
 - augmentations
-  - HorizontalFlip
-  - VerticalFlip
-  - Blur
-  - MotionBlur
-  - MedianBlur
-  - GaussianBlur
-  - OpticalDistortion
-  - GridDistortion
-  - ElasticTransform
-  - CLAHE
-  - ChannelShuffle
-  - RandomGamma
-  - HueSaturationValue
-  - RGBShift
-  - RandomContrast
-  - GaussNoise
-  - Cutout
-  - Mosaic
+  - HorizontalFlip (horizontal_flip)
+  - VerticalFlip (vertical_flip)
+  - Blur (blur)
+  - MotionBlur (motion_blur)
+  - MedianBlur (motion_blur)
+  - GaussianBlur (gaussian_blur)
+  - OpticalDistortion (optical_distortion)
+  - GridDistortion (grid_distortion)
+  - ElasticTransform (elastic_transform)
+  - CLAHE (clahe)
+  - ChannelShuffle (channel_shuffle)
+  - RandomGamma (random_gamma)
+  - HueSaturationValue (hsv)
+  - RGBShift (rgb_shift)
+  - RandomContrast (random_contrast)
+  - GaussNoise (gauss_noise)
+  - Cutout (cutout)
+  - Mosaic (mosaic)
 
 - post processing
   - filtering by confidence score
@@ -69,7 +69,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - other utils
   - TensorBoard (run `tensorboard --logdir ./output` in root)
   - MLFlow (run `mlflow ui --port 5000` in root)
- 
+
  
 ## Requirement
 - numba=0.49.1 
