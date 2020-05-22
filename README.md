@@ -40,24 +40,24 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - PolyLR
   
 - augmentations
-  - HorizontalFlip
-  - VerticalFlip
-  - Blur
-  - MotionBlur
-  - MedianBlur
-  - GaussianBlur
-  - OpticalDistortion
-  - GridDistortion
-  - ElasticTransform
-  - CLAHE
-  - ChannelShuffle
-  - RandomGamma
-  - HueSaturationValue
-  - RGBShift
-  - RandomContrast
-  - GaussNoise
-  - Cutout
-  - Mosaic
+  - HorizontalFlip (horizontal_flip)
+  - VerticalFlip (vertical_flip)
+  - Blur (blur)
+  - MotionBlur (motion_blur)
+  - MedianBlur (motion_blur)
+  - GaussianBlur (gaussian_blur)
+  - OpticalDistortion (optical_distortion)
+  - GridDistortion (grid_distortion)
+  - ElasticTransform (elastic_transform)
+  - CLAHE (clahe)
+  - ChannelShuffle (channel_shuffle)
+  - RandomGamma (random_gamma)
+  - HueSaturationValue (hsv)
+  - RGBShift (rgb_shift)
+  - RandomContrast (random_contrast)
+  - GaussNoise (gauss_noise)
+  - Cutout (cutout)
+  - Mosaic (mosaic)
  
  
 ## Requirement
