@@ -203,21 +203,19 @@ class Logger:
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.mode = 'train'
 
-        # self.initialize_mlflow(config)
+        self.initialize_mlflow(config)
 
 
     def initialize_mlflow(self, config):
         # mlflow
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
-
         mlflow.log_params(params_to_mlflow_format(config))
-
-        # import pdb; pdb.set_trace()
+        mlflow.log_artifact(str(self.save_dir/"config.json"))
 
     def finish_training(self):
         self.writer.close()
-        # mlflow.end_run()
+        mlflow.end_run()
 
 
     def start_train_epoch(self):
@@ -232,6 +230,7 @@ class Logger:
     def end_train_epoch(self):
         for key, value in self.train_loss_epoch_history.value.items():
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
+            mlflow.log_metrics({'tr_%s' % (key.replace('loss', 'ls')) : value})
         self.trained_epoch += 1
         self.trained_epoch_this_run += 1
 
@@ -245,8 +244,6 @@ class Logger:
             filepath = str(self.save_dir/('model_epoch_%s.pt' % str(self.trained_epoch).zfill(3)))
             torch.save(self.model.state_dict(), filepath)
         
-        # mlflow.log_metrics({'train/%s' % k: v for k, v in self.train_loss_epoch_history.value.items()})
-
     def start_valid_epoch(self):
         self.mode = 'valid'
         self.valid_loss_epoch_history.reset()
@@ -258,6 +255,8 @@ class Logger:
 
         for key, value in self.valid_loss_epoch_history.value.items():
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)    
+            mlflow.log_metrics({'val_%s' % (key.replace('loss', 'ls')) : value})
+
         iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]
         metrics_scores = self.valid_metric_epoch_history.value
         for key, values in metrics_scores.items():
@@ -265,7 +264,9 @@ class Logger:
             for i, value in enumerate(values):
                 scores.append(value)
                 self.writer.add_scalar('valid/%s_%.2f' % (key, iou_thresholds[i]), value, self.trained_epoch)
+                mlflow.log_metrics({'val_%s_%.2f' % ('org' if key == 'original' else 'prc' , iou_thresholds[i]): value})
             self.writer.add_scalar('valid/%s_average' % (key), sum(scores)/len(scores), self.trained_epoch)
+            mlflow.log_metrics({'val_%s_avg' % ('org' if key == 'original' else 'prc'):  sum(scores)/len(scores)})
 
         # save image
         if ((self.trained_epoch_this_run - 1)) % self.valid_image_save_interval == 0:
@@ -273,9 +274,6 @@ class Logger:
             for key, value in images.items():
                 self.writer.add_image('valid/%d/%s' % (self.trained_epoch ,key), value, global_step=self.trained_epoch, dataformats='HWC')
         
-        # mlflow.log_metrics({'valid/%s' % k: v for k, v in self.valid_loss_epoch_history.value.items()})
-        # mlflow.log_metrics({'valid/score': self.valid_metric_epoch_history.value})
-
 
     def send_loss(self, loss_dict):
         if self.mode == 'train':
