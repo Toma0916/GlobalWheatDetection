@@ -45,7 +45,8 @@
             "test_time_augment": false
         },
         "sampler": {
-            "balance_sources": {
+            "name": "balance_sources",
+            "config": {
                 "strength": 10000
             }
         }
