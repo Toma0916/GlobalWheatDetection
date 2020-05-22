@@ -98,7 +98,7 @@
             "random_contrast": {
                 "p": 0.0
             },
-            "random_size_bbox_safe_crop": {
+            "random_sized_bbox_safe_crop": {
                 "p": 0.0
             },
             "gauss_noise": {
