@@ -1,0 +1,128 @@
+{
+    "debug": [true, "debugg"],
+    "general": {
+        "prefix": "gn",
+        "output_dirname": ["sample", "output_dirname"],
+        "experiment_name": ["sample", "exp_name"],
+        "seed": [42, "seed"],
+        "model_save_interval": [5, "model_save_interval"],
+        "valid_image_save_interval": [5, "valid_image_save_interval"],
+        "bbox_filter": {
+            "max_bbox_size": [10000000, "max_bbox_size"],
+            "min_bbox_size": [0, "min_bbox_size"]
+        },
+        "train_valid_split": {
+            "name": ["random", "train_valid_split"],
+            "config": {}
+        }
+    },
+    "model": {
+        "prefix": "md",
+        "name": ["faster_rcnn", "model"], 
+        "config": {}
+    },
+    "train": {
+        "prefix": "tr",
+        "batch_size": [8, "batch_size"],
+        "epochs": [10, "epochs"],
+        "random_annotation": {
+            "drop": {
+                "p": [0.0, "rand_annot_drop_p"]
+            },
+            "vibration": {
+                "max_ratio": [0.0, "rand_annot_vibr_maxratio"]
+            }
+        },
+        "sampler": {
+            "name": ["", "sampler"],
+            "config": {}
+        },
+        "optimizer": {
+            "name": ["", "optimizer"],
+            "config": {}
+        },
+        "scheduler": {
+            "name": ["", "scheduler"],
+            "config": {}
+        },
+        "augment": {
+            "prefix": "ag",
+            "horizontal_flip": {
+                "p": 0.0
+            },
+            "vertical_flip": {
+                "p": 0.0
+            },
+            "random_rotate_90": {
+                "p": 0.0
+            },
+            "blur": {
+                "p": 0.0
+            },
+            "motion_blur": {
+                "p": 0.0
+            },
+            "median_blur": {
+                "p": 0.0
+            },
+            "gaussian_blur": {
+                "p": 0.0
+            },
+            "optical_distortion": {
+                "p": 0.0
+            },
+            "grid_distortion": {
+                "p": 0.0
+            },
+            "elastic_transform": {
+                "p": 0.0
+            },
+            "clahe": {
+                "p": 0.0
+            },
+            "channel_shuffle": {
+                "p": 0.0
+            },
+            "random_gamma": {
+                "p": 0.0
+            },
+            "hsv": {
+                "p": 0.0
+            },
+            "rgb_shift": {
+                "p": 0.0
+            },
+            "random_brightness": {
+                "p": 0.0
+            },
+            "random_contrast": {
+                "p": 0.0
+            },
+            "random_sized_bbox_safe_crop": {
+                "p": 0.0,
+                "height": 1024,
+                "width": 1024
+            },
+            "gauss_noise": {
+                "p": 0.0
+            },
+            "cutout": {
+                "p": 0.0
+            },
+            "mosaic": {
+                "p": 0.0
+            },
+            "test_time_augment": [false, "tta"]
+        }
+    },
+    "valid": {
+        "prefix": "vl",
+        "apply_bbox_filter": [false, "bbox_size_filter_invalid"],
+        "confidence_filter": {
+            "min_confidence": [0.0, "confid_filter"]
+        },
+        "post_processor": {
+            "name": ["", "postprocessor"]
+        }
+    }
+}
