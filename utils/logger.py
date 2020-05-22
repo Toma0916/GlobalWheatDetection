@@ -263,10 +263,10 @@ class Logger:
             scores = []
             for i, value in enumerate(values):
                 scores.append(value)
-                self.writer.add_scalar('valid/%s_%.2f' % (key, iou_thresholds[i]), value, self.trained_epoch)
-                mlflow.log_metrics({'val_%s_%.2f' % ('org' if key == 'original' else 'prc' , iou_thresholds[i]): value})
-            self.writer.add_scalar('valid/%s_average' % (key), sum(scores)/len(scores), self.trained_epoch)
-            mlflow.log_metrics({'val_%s_avg' % ('org' if key == 'original' else 'prc'):  sum(scores)/len(scores)})
+                self.writer.add_scalar('score/%s_%.2f' % (key, iou_thresholds[i]), value, self.trained_epoch)
+                mlflow.log_metrics({'score_%s_%.2f' % ('org' if key == 'original' else 'prc' , iou_thresholds[i]): value})
+            self.writer.add_scalar('score/%s_average' % (key), sum(scores)/len(scores), self.trained_epoch)
+            mlflow.log_metrics({'score_%s_avg' % ('org' if key == 'original' else 'prc'):  sum(scores)/len(scores)})
 
         # save image
         if ((self.trained_epoch_this_run - 1)) % self.valid_image_save_interval == 0:
