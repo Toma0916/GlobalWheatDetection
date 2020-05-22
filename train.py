@@ -121,7 +121,7 @@ def evaluate_epoch():
             logger.send_score(processed_matric_scores, 'processed')
             
     # 最後のevalのloopで生成されたものを保存する
-    logger.send_images(images, image_ids, target_boxes, processed_outputs)
+    logger.send_images(images, image_ids, target_boxes, original_outputs, processed_outputs)
     logger.end_valid_epoch()
 
 

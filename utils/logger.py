@@ -130,15 +130,19 @@ class ImageStorage():
         self.image_ids = None
         self.images = None
         self.target_boxes = None
-        self.predict_boxes = None
-        self.predict_scores = None
+        self.original_predict_boxes = None
+        self.original_predict_scores = None
+        self.processed_predict_boxes = None
+        self.processed_predict_scores = None
 
-    def send(self, image_ids, images, target_boxes, predict_boxes, predict_scores):
+    def send(self, image_ids, images, target_boxes, original_predict_boxes, original_predict_scores, processed_predict_boxes, processed_predict_scores):
         self.image_ids = image_ids
         self.images = images
         self.target_boxes = target_boxes
-        self.predict_boxes = predict_boxes
-        self.predict_scores = predict_scores
+        self.original_predict_boxes = original_predict_boxes
+        self.original_predict_scores = original_predict_scores
+        self.processed_predict_boxes = processed_predict_boxes
+        self.processed_predict_scores = processed_predict_scores
 
     @property
     def painted_images(self):
@@ -151,11 +155,19 @@ class ImageStorage():
                 for j in range(self.target_boxes[i].shape[0]):
                     box = self.target_boxes[i][j]
                     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 0, 0), 3)
-            if (self.predict_boxes is not None) and (self.predict_scores is not None):            
-                for j in range(self.predict_boxes[i].shape[0]):
-                    box = self.predict_boxes[i][j]
+
+            if (self.original_predict_boxes is not None) and (self.original_predict_scores is not None):            
+                for j in range(self.original_predict_scores[i].shape[0]):
+                    box = self.original_predict_boxes[i][j]
+                    cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220/255, 220/255, 0), 3)
+                    cv2.putText(image, '%f' % self.original_predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (220/255, 220/255, 0), 1.5, cv2.LINE_AA)
+        
+            if (self.processed_predict_boxes is not None) and (self.processed_predict_scores is not None):            
+                for j in range(self.processed_predict_scores[i].shape[0]):
+                    box = self.processed_predict_boxes[i][j]
                     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
-                    cv2.putText(image, '%f' % self.predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+                    cv2.putText(image, '%f' % self.processed_predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+
             id_image_dict[self.image_ids[i]] = image
         return id_image_dict    
 
@@ -163,8 +175,10 @@ class ImageStorage():
         self.image_ids = None
         self.images = None
         self.target_boxes = None
-        self.predict_boxes = None
-        self.predict_scores = None
+        self.original_predict_boxes = None
+        self.original_predict_scores = None
+        self.processed_predict_boxes = None
+        self.processed_predict_scores = None
 
 
 
@@ -275,11 +289,14 @@ class Logger:
         self.valid_metric_epoch_history.send(scores, score_type)
     
 
-    def send_images(self, images, image_ids, target_boxes=None, outputs=None):
+    def send_images(self, images, image_ids, target_boxes=None, original_outputs=None, processed_outputs=None):
         images = [np.transpose(image.cpu().detach().numpy(), (1, 2, 0)) for image in images]
-        predict_boxes = [output['boxes'] for output in outputs] if (outputs is not None) else None
-        predict_scores = [output['scores'] for output in outputs] if (outputs is not None) else None
-        self.image_epoch_history.send(image_ids, images, target_boxes, predict_boxes, predict_scores)
+        original_predict_boxes = [output['boxes'] for output in original_outputs] if (original_outputs is not None) else None
+        original_predict_scores = [output['scores'] for output in original_outputs] if (original_outputs is not None) else None
+        processed_predict_boxes = [output['boxes'] for output in processed_outputs] if (processed_outputs is not None) else None
+        processed_predict_scores = [output['scores'] for output in processed_outputs] if (processed_outputs is not None) else None
+
+        self.image_epoch_history.send(image_ids, images, target_boxes, original_predict_boxes, original_predict_scores, processed_predict_boxes, processed_predict_scores)
 
 
 
