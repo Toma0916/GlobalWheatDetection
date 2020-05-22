@@ -51,6 +51,8 @@ from sklearn.model_selection import KFold, train_test_split
 from skimage.transform import AffineTransform, warp
 import sklearn.metrics
 
+from utils.functions import detach_outputs
+
 
 def filter_score(outputs, threshold_score):
 
@@ -166,12 +168,7 @@ def weighted_boxes_fusion(outputs, threshold):
 def postprocessing(outputs, config):
 
     # detach and to cpu
-    for i, output in enumerate(outputs):
-        detached_output = {}
-        detached_output['boxes'] = output['boxes'].cpu().detach().numpy()
-        detached_output['labels'] = output['labels'].cpu().detach().numpy()
-        detached_output['scores'] = output['scores'].cpu().detach().numpy()
-        outputs[i] = detached_output
+    outputs = detach_outputs(outputs)
 
     # score filter 
     outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])

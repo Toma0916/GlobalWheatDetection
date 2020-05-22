@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from numba import jit
 from typing import List, Union, Tuple
 
+from utils.functions import detach_outputs
+
 
 @jit(nopython=True)
 def calculate_iou(gt, pr, form='pascal_voc') -> float:
@@ -182,20 +184,12 @@ def calculate_image_precision(gts, preds, thresholds = (0.5, ), form = 'coco') -
 
 
 
-def calculate_score_for_each(outputs, targets, is_detached=True):
+def calculate_score_for_each(outputs, targets):
     """
     calculate score for batch
     """
 
-    if not is_detached:
-        # detach and to cpu
-        for i, output in enumerate(outputs):
-            detached_output = {}
-            detached_output['boxes'] = output['boxes'].cpu().detach().numpy()
-            detached_output['labels'] = output['labels'].cpu().detach().numpy()
-            detached_output['scores'] = output['scores'].cpu().detach().numpy()
-            outputs[i] = detached_output
-
+    outputs = detach_outputs(outputs)
 
     iou_thresholds = numba.typed.List()
     for x in [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]:
