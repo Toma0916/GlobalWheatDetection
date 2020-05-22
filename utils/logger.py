@@ -261,9 +261,12 @@ class Logger:
         iou_thresholds = [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]
         metrics_scores = self.valid_metric_epoch_history.value
         for key, values in metrics_scores.items():
+            scores = []
             for i, value in enumerate(values):
+                scores.append(value)
                 self.writer.add_scalar('valid/%s_%.2f' % (key, iou_thresholds[i]), value, self.trained_epoch)
-            
+            self.writer.add_scalar('valid/%s_average' % (key), sum(scores)/len(scores), self.trained_epoch)
+
         # save image
         if ((self.trained_epoch_this_run - 1)) % self.valid_image_save_interval == 0:
             images = self.image_epoch_history.painted_images
