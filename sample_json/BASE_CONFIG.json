@@ -99,7 +99,9 @@
                 "p": 0.0
             },
             "random_sized_bbox_safe_crop": {
-                "p": 0.0
+                "p": 0.0,
+                "height": 1024,
+                "width": 1024
             },
             "gauss_noise": {
                 "p": 0.0
