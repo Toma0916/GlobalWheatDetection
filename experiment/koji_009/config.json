@@ -1,12 +1,13 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "koji/exp_006_balancesampling",
+        "output_dirname": "koji/exp_009",
+        "experiment_name": "koji",
         "seed": 42,
         "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
-            "min_bbox_size": 90
+            "min_bbox_size": 3000
         }
     },
     "model": {
@@ -34,21 +35,27 @@
             }
         },
         "scheduler": {
-            "name": "WarmupCosineAnnealing",
+            "name": "Step",
             "config": {
-                "T_max": 30,
-                "warmup_iters": 8,
-                "eta_min": 1e-6
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
             }
         },
         "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 1.0
+            },
             "test_time_augment": false
-        },
-        "sampler": {
-            "name": "balance_sources",
-            "config": {
-                "strength": 10000
-            }
         }
     }
 }
