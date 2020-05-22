@@ -59,9 +59,9 @@ def fasterrcnn_model(backbone, class_num=2, pretrained=True):
         'resnet101': True,  # batch_size=4は乗る
         'resnet152': True,   # batch_size=4は乗る
         'resnext50_32x4d': True,
-        'resnext101_32x8d': True,
-        # 'wide_resnet50_2': True,  # エラー（分からん
-        # 'wide_resnet101_2': True
+        # 'resnext101_32x8d': True,  # エラー起きる
+        # 'wide_resnet50_2': True,  # エラー起きる
+        # 'wide_resnet101_2': True  # エラー起きる
     }
 
     assert backbone in backbone_list.keys(), 'Backbone\'s name is not valid. Available backbones: %s' % str(list(backbone_list.keys()))
