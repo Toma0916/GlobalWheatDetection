@@ -13,6 +13,7 @@ from logging import getLogger
 from time import perf_counter
 import warnings
 import glob
+import string
 import copy
 
 import numpy as np 
@@ -110,6 +111,34 @@ def vibrate_bboxes_with_ratio(boxes, ratio, image_size):
     
     return boxes
 
+
+def dict_flatten(target, separator='_'):
+    if not isinstance(target, dict):
+        raise ValueError
+    
+    if not any(filter(lambda x: isinstance(x, dict), target.values())):
+        return target
+    
+    dct = {}
+    for key, value in target.items():
+        if isinstance(value, dict):
+            for k, v in dict_flatten(value, separator).items():
+                if type(v) is list:
+                    v = ' '.join(sorted(v))
+                dct[str(key) + separator + str(k)] = v
+        else:
+            if type(value) is list:
+                value = ' '.join(sorted(value))
+            dct[key] = value
+            
+    return dct
+
+
+def randomname(n):
+   randlst = [random.choice(string.ascii_letters + string.digits) for i in range(n)]
+   return ''.join(randlst)
+
+
 def func(d_base, d):
     for k, v in d_base.items():
         if isinstance(v, dict):
@@ -121,6 +150,7 @@ def func(d_base, d):
             d[k] = d_base[k]
     return d
 
+  
 def format_config_by_baseconfig(config, base_config_path='./sample_json/BASE_CONFIG.json'):
     with open(base_config_path, 'r') as f:
         base_config = json.load(f)

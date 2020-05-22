@@ -182,11 +182,11 @@ def postprocessing(outputs, config):
         "WIP_wbf": weighted_boxes_fusion
     }
     
-    if not "post_processor" in config.keys():
+    if not config["post_processor"]["name"] in config.keys():
         return outputs
     
     ensemble_boxes_method_name = config['post_processor']['name'] 
-    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(optimizer_list.keys()))
+    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(ensemble_boxes_method_list.keys()))
 
     outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
     
