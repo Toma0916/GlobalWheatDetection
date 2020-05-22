@@ -76,6 +76,46 @@ def fasterrcnn_model(backbone, class_num=2, pretrained=True):
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, class_num)
     return model 
 
+class Model:
+    def __init__(self, config):
+        model_list = {
+            'faster_rcnn': fasterrcnn_model,
+            'efficient_det': efficientdet_model
+        }
+        assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
+        self.model_name = config['name']
+        self.model = model_list[config['name']](**config['config'])
+        self.is_train = True
+
+    def go(self, images, targets=None):
+        if self.model_name == 'faster_rcnn':
+            if self.is_train:
+                loss_dict = self.model(images, targets)
+                return loss_dict
+            else:
+                targets = self.model(images)
+                return targets
+        elif self.model_name == 'efficient_det':
+            boxes = [target['boxes'] for target in targets]
+            labels = [target['labels'] for target in targets]
+            print(boxes, labels)
+            loss = self.model(images, boxes, labels)
+        return loss_dict
+
+    def to(self, device):
+        self.model.to(device)
+        return self
+
+    def eval(self):
+        self.model.eval()
+        self.is_train = False
+
+    def train(self):
+        self.model.train()
+        self.is_train = True
+
+    def parameters(self):
+        return self.model.parameters()
 
 def get_model(config):
 

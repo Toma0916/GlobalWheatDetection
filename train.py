@@ -54,7 +54,7 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 # --- my modules ---
-from model import get_model
+from model import get_model, Model
 from optimizer import get_optimizer
 from scheduler import get_scheduler
 
@@ -81,7 +81,7 @@ def train_epoch():
         targets_copied = copy.deepcopy(targets)
         target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        loss_dict = model(images, targets)
+        loss_dict = model.go(images, targets)
         losses = sum(loss for loss in loss_dict.values())
         optimizer.zero_grad()
         losses.backward()
@@ -212,7 +212,8 @@ if __name__ == '__main__':
     valid_data_loader = DataLoader(valid_dataset, batch_size=8, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # load model and make parallel
-    model = get_model(config['model']).to(device)
+    model = Model(config['model']).to(device)
+    # model = get_model(config['model']).to(device)
     # model = torch.nn.DataParallel(model) 
 
     # train setting
