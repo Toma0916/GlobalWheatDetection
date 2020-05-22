@@ -2,4 +2,5 @@
 /output
 *.pyc
 
-/mlruns/1
+# これminodaもexperiment: name sampleに対応してると思うけどどうだろう
+/mlruns/1  
