@@ -79,8 +79,8 @@ def fasterrcnn_model(backbone, class_num=2, pool_layers_num=4, pooled_size=7, pr
 
     else:
         # backboneだけpretrained
-        assert 1 <= pool_layers_num <= 4, 'pool_layers_num must be in [1, 2, 3, 4] You selected %d' % (pool_layers_num) 
-        assert 5 <= pooled_size <= 9, 'pooled_size must be in [5, 6, 7, 8, 9] You selected %d' % (pooled_size) 
+        assert pool_layers_num in [1, 2, 3, 4], 'pool_layers_num must be in [1, 2, 3, 4] You selected %d' % (pool_layers_num) 
+        assert pooled_size in [5, 6, 7, 8, 9], 'pooled_size must be in [5, 6, 7, 8, 9] You selected %d' % (pooled_size) 
 
         # anchor_sizesはデフォルトから1スケール落とした。 default: ((32,), (64,), (128,), (256,), (512,))
         anchor_sizes = ((16), (32,), (64,), (128,), (256,))
