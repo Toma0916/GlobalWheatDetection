@@ -97,12 +97,10 @@ def evaluate_epoch():
         for images, targets, image_ids in valid_data_loader:
             model.eval()
             optimizer.zero_grad()
-
             # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
             targets_copied = copy.deepcopy(targets)
             target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
             preds, loss_dict = model(images, targets)
-
             loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
             logger.send_loss(loss_dict_detach) 
 
@@ -208,7 +206,7 @@ if __name__ == '__main__':
     model = Model(config['model']).to(device)
     # model = get_model(config['model']).to(device)
     # model = torch.nn.DataParallel(model) 
-
+    
     # train setting
     trainable_params = [p for p in model.parameters() if p.requires_grad]
     optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
