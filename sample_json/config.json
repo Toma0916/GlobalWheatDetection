@@ -2,7 +2,7 @@
     "debug": true,
     "general": {
         "output_dirname": "sample",
-        "experiment_name": "sample",
+        "experiment_name": "manhattan",
         "seed": 99,
         "model_save_interval": 3,
         "valid_image_save_interval": 3,
@@ -18,16 +18,15 @@
         }
     },
     "model": {
-        "name": "faster_rcnn", 
+        "name": "efficient_det", 
         "config": {
-            "backbone": "fasterrcnn_resnet50_fpn",
-            "class_num": 2,
-            "pretrained": true
+            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
+            "image_size": 256
         }
     },
     "train": {
-        "batch_size": 8,
-        "epochs": 2,
+        "batch_size": 1,
+        "epochs": 50,
         "random_annotation": {
             "drop": {
                 "p": 0.0
