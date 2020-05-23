@@ -75,33 +75,24 @@ class DetBenchTrain(nn.Module):
         super(DetBenchTrain, self).__init__()
         self.config = config
         self.model = model
-        self.anchors = Anchors(
+        anchors = Anchors(
             config.min_level, config.max_level,
             config.num_scales, config.aspect_ratios,
             config.anchor_scale, config.image_size)
-        self.anchor_labeler = AnchorLabeler(self.anchors, config.num_classes, match_threshold=0.5)
+        self.anchor_labeler = AnchorLabeler(anchors, config.num_classes, match_threshold=0.5)
         self.loss_fn = DetectionLoss(self.config)
 
     def forward(self, x, gt_boxes, gt_labels):
-        class_out_origin, box_out_origin = self.model(x)
-        class_out, box_out, indices, classes = _post_process(self.config, class_out_origin, box_out_origin)
-        image_scales = torch.ones(len(gt_boxes))
+        class_out, box_out = self.model(x)
+
         cls_targets = []
         box_targets = []
         num_positives = []
-        batch_detections = []
         # FIXME this may be a bottleneck, would be faster if batched, or should be done in loader/dataset?
         for i in range(x.shape[0]):
             gt_class_out, gt_box_out, num_positive = self.anchor_labeler.label_anchors(gt_boxes[i], gt_labels[i])
             cls_targets.append(gt_class_out)
             box_targets.append(gt_box_out)
             num_positives.append(num_positive)
-            if not self.training:
-                detections = generate_detections(
-                    class_out[i], box_out[i], self.anchors.boxes, indices[i], classes[i], image_scales[i])
-                batch_detections.append(detections)
 
-        if self.training:
-            return self.loss_fn(class_out_origin, box_out_origin, cls_targets, box_targets, num_positives)
-        else:
-            return torch.stack(batch_detections, dim=0), self.loss_fn(class_out_origin, box_out_origin, cls_targets, box_targets, num_positives)
+        return self.loss_fn(class_out, box_out, cls_targets, box_targets, num_positives)
