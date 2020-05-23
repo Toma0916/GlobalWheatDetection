@@ -21,7 +21,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 
 - model
   -  Faster RCNN
-  -  EfficientDet (based on https://www.kaggle.com/shonenkov/training-efficientdet）
+  -  EfficientDet (based on https://www.kaggle.com/shonenkov/training-efficientdet or https://github.com/rwightman/efficientdet-pytorch/blob/master/train.py）
   -
  
 - optimizer
@@ -80,6 +80,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - torchvision=0.6.0 
 - albumentations=0.4.5
 - mlflow=1.8.0 
+- cython, pycocotools (TBD)
 
 ## Usage
 Make json file about train setting and run hogehoge.sh with json path.
