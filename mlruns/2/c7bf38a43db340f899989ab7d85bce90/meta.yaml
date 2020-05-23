@@ -2,7 +2,7 @@ artifact_uri: file:///home/toma/kaggle/GlobalWheatDetection/mlruns/2/c7bf38a43db
 end_time: 1590203135064
 entry_point_name: ''
 experiment_id: '2'
-lifecycle_stage: active
+lifecycle_stage: deleted
 name: ''
 run_id: c7bf38a43db340f899989ab7d85bce90
 run_uuid: c7bf38a43db340f899989ab7d85bce90

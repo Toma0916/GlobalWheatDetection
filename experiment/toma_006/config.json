@@ -1,5 +1,5 @@
 {
-    "debug": false,
+    "debug": true,
     "general": {
         "output_dirname": "toma/006",
         "experiment_name": "toma",
@@ -27,7 +27,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 100,
+        "epochs": 20,
         "random_annotation": {
             "drop": {
                 "p": 0.0
