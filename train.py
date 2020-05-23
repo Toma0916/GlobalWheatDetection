@@ -86,7 +86,6 @@ def train_epoch():
         optimizer.step()
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
-
     logger.send_images(images, image_ids, target_boxes, None)
     logger.end_train_epoch()
 
@@ -96,30 +95,26 @@ def evaluate_epoch():
     logger.start_valid_epoch()
     with torch.no_grad():
         for images, targets, image_ids in valid_data_loader:
-            model.train()
+            model.eval()
             optimizer.zero_grad()
-            # images = list(image.float().to(device) for image in images)
-            # targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
             targets_copied = copy.deepcopy(targets)
             target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
-            loss_dict = model(images, targets)
+            preds, loss_dict = model(images, targets)
+
             loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
             logger.send_loss(loss_dict_detach) 
 
-            # Start calculating scores for competition
-            model.eval()
-            original_outputs = model(images, targets)
-            original_matric_scores = calculate_score_for_each(original_outputs, targets_copied)
-            processed_outputs = postprocessing(copy.deepcopy(original_outputs), config["valid"]) if 'valid' in config.keys() else outputs
-            processed_matric_scores = calculate_score_for_each(processed_outputs, targets_copied)
+            original_metric_scores = calculate_score_for_each(preds, targets_copied)
+            processed_outputs = postprocessing(copy.deepcopy(preds), config["valid"]) if 'valid' in config.keys() else outputs
+            processed_metric_scores = calculate_score_for_each(processed_outputs, targets_copied)
                 
-            logger.send_score(original_matric_scores, 'original')
-            logger.send_score(processed_matric_scores, 'processed')
+            logger.send_score(original_metric_scores, 'original')
+            logger.send_score(processed_metric_scores, 'processed')
             
     # 最後のevalのloopで生成されたものを保存する
-    logger.send_images(images, image_ids, target_boxes, original_outputs, processed_outputs)
+    logger.send_images(images, image_ids, target_boxes, preds, processed_outputs)
     logger.end_valid_epoch()
 
 
@@ -207,7 +202,7 @@ if __name__ == '__main__':
         np.random.seed(worker_id+random_seed)   
     
     train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], sampler=get_sampler(train_dataset, config['train']), num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
-    valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    valid_data_loader = DataLoader(valid_dataset, batch_size=2, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # load model and make parallel
     model = Model(config['model']).to(device)
