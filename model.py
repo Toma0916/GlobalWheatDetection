@@ -93,8 +93,8 @@ class Model:
             if self.is_train:
                 images = list(image.float().to(self.device) for image in images)
                 targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
-                loss_dict = self.model(images, targets)
-                return loss_dict
+                loss = self.model(images, targets)
+                return loss
             else:
                 images = list(image.float().to(self.device) for image in images)
                 targets = self.model(images)
@@ -103,9 +103,9 @@ class Model:
             boxes = [target['boxes'].to(self.device).float() for target in targets]
             labels = [target['labels'].to(self.device).float() for target in targets]
             images = torch.stack(images).to(self.device).float()
-            loss = self.model(images, boxes, labels)
-            loss_dict = None
-        return loss_dict
+            loss, _, _ = self.model(images, boxes, labels)
+            return {'loss': loss}
+        return 0
 
     def to(self, device):
         self.model.to(device)

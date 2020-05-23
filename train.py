@@ -98,8 +98,8 @@ def evaluate_epoch():
         for images, targets, image_ids in valid_data_loader:
             model.train()
             optimizer.zero_grad()
-            images = list(image.float().to(device) for image in images)
-            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            # images = list(image.float().to(device) for image in images)
+            # targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
             targets_copied = copy.deepcopy(targets)
@@ -110,7 +110,7 @@ def evaluate_epoch():
 
             # Start calculating scores for competition
             model.eval()
-            original_outputs = model(images)
+            original_outputs = model(images, targets)
             original_matric_scores = calculate_score_for_each(original_outputs, targets_copied)
             processed_outputs = postprocessing(copy.deepcopy(original_outputs), config["valid"]) if 'valid' in config.keys() else outputs
             processed_matric_scores = calculate_score_for_each(processed_outputs, targets_copied)
