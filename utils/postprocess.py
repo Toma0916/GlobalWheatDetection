@@ -169,23 +169,19 @@ def postprocessing(outputs, config):
 
     # detach and to cpu
     outputs = detach_outputs(outputs)
+            
+    if not config["post_processor"]["name"] in config.keys():    
+        ensemble_boxes_method_list = {
+            "nms": non_maximum_supression,
+            "WIP_soft_nms": soft_non_maximum_supression,
+            "WIP_wbf": weighted_boxes_fusion
+        }
+        ensemble_boxes_method_name = config['post_processor']['name'] 
+        assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(ensemble_boxes_method_list.keys()))
+        outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
 
     # score filter 
     outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])
-
-    ensemble_boxes_method_list = {
-        "nms": non_maximum_supression,
-        "WIP_soft_nms": soft_non_maximum_supression,
-        "WIP_wbf": weighted_boxes_fusion
-    }
-    
-    if not config["post_processor"]["name"] in config.keys():
-        return outputs
-    
-    ensemble_boxes_method_name = config['post_processor']['name'] 
-    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(ensemble_boxes_method_list.keys()))
-
-    outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
     
     return outputs
 
