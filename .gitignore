@@ -1,5 +1,6 @@
 /src
 /output
+/weights
 *.pyc
 
 # sampleの実験は共有しない
