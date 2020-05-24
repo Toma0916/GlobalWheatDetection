@@ -21,7 +21,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 
 - model
   -  Faster RCNN
-  -  EfficientDet (based on https://github.com/rwightman/efficientdet-pytorch/blob/master/train.py）
+  -  EfficientDet (based on https://github.com/rwightman/efficientdet-pytorch）
   -
  
 - optimizer
@@ -81,6 +81,9 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - albumentations=0.4.5
 - mlflow=1.8.0 
 - cython, pycocotools (TBD)
+- timm==0.1.26
+- pycocotools==2.0.0
+- cython
 
 ## Usage
 Make json file about train setting and run hogehoge.sh with json path.
@@ -88,4 +91,9 @@ Make json file about train setting and run hogehoge.sh with json path.
 You can use Single GPU.
 Multi GPU will be available soon!
 
-
+### Usage for EfficientDet
+This model is from https://github.com/rwightman/efficientdet-pytorch.  
+We used the following command to get the pretrained model (also from the above website)  
+```
+wget https://github.com/rwightman/efficientdet-pytorch/releases/download/v0.1/tf_efficientdet_d5-ef44aea8.pth
+```
