@@ -63,7 +63,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - post processing
   - filtering by confidence score
   - non maximum supression
-  - [WIP] soft non maximum supression
+  - soft non maximum supression
   - [WIP] weighted boxes fusion
 
 - other utils
