@@ -149,8 +149,7 @@ def non_maximum_supression_each(bounding_boxes, confidence_score, threshold=None
             order = order[left]
         elif method_type == 'soft':
             weights = np.exp(-(ratio*ratio)/sigma)
-            # 自分のorderより小さいところ？？に修正
-            confidence_score[:(order.shape[0]-1)] = weights * confidence_score[:(order.shape[0]-1)]
+            confidence_score[np.where(index<order)[0]] = weights * confidence_score[np.where(index<order)[0]]
             order = order[:-1]
 
     return picked_boxes, picked_score
