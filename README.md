@@ -97,3 +97,4 @@ We used the following command to get the pretrained model (also from the above w
 ```
 wget https://github.com/rwightman/efficientdet-pytorch/releases/download/v0.1/tf_efficientdet_d5-ef44aea8.pth
 ```
+In order to use this, please specify the path to this weight in config.json. Example is given in ./sample_json/config_effdet.json.
