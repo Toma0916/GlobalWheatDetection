@@ -23,7 +23,9 @@
     "model": {
         "name": "faster_rcnn",
         "config": {
-            "backbone": "fasterrcnn_resnet50_fpn",
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
             "class_num": 2,
             "pretrained": true
         }
