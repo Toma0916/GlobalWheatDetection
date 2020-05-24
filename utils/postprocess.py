@@ -215,7 +215,7 @@ def weighted_boxes_fusion_each(bounding_boxes, confidence_score, threshold=None)
     fusion_boxes = np.array([])
     material_boxes = []
     material_confidences = []
-
+    
     # Compute areas of bounding boxes
     areas = (end_x - start_x + 1) * (end_y - start_y + 1)
 
@@ -241,8 +241,8 @@ def weighted_boxes_fusion_each(bounding_boxes, confidence_score, threshold=None)
 
         # Compute ordinates of intersection-over-union(IOU)
         x1 = np.maximum(start_x[index], f_start_x)
-        x2 = np.minimum(end_x[index], f_start_y)
-        y1 = np.maximum(start_y[index], f_end_x)
+        x2 = np.minimum(end_x[index], f_end_x)
+        y1 = np.maximum(start_y[index], f_start_y)
         y2 = np.minimum(end_y[index], f_end_y)
 
         # Compute areas of intersection-over-union
@@ -264,11 +264,8 @@ def weighted_boxes_fusion_each(bounding_boxes, confidence_score, threshold=None)
             continue
         
         for mtc in mtcs:
-            fusion_boxes = np.append(fusion_boxes, boxes[index:index+1, :], axis=0)
             material_boxes[mtc] = np.append(material_boxes[mtc], boxes[index:index+1], axis=0)
             material_confidences[mtc] = np.append(material_confidences[mtc], score[index:index+1])
-
-
 
         order = order[:-1]
 
