@@ -120,8 +120,10 @@ class Transform:
     https://github.com/katsura-jp/tour-of-albumentations 参考
     """
 
-    def __init__(self, config, is_train):
-
+    def __init__(self, all_config, is_train):
+        self.model_name = all_config['model']['name']
+        self.img_size = all_config['model']['config']['image_size'] if self.model_name=='efficient_det' else 1024
+        config = all_config['train']['augment']
         if is_train or config['test_time_augment']:
 
             # mosaic
@@ -245,6 +247,7 @@ class Transform:
             A.RandomContrast(**self.random_contrast),
             A.GaussNoise(**self.gauss_noise),
             A.Cutout(**self.cutout),
+            A.Resize(height=self.img_size, width=self.img_size, p=1.0 if self.model_name=='efficient_det' else 0.0), # GPU will be OOM without this
             ToTensorV2(p=1.0)  # convert numpy image to tensor
             ], 
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}

@@ -4,8 +4,8 @@
         "output_dirname": "sample",
         "experiment_name": "manhattan",
         "seed": 99,
-        "model_save_interval": 50,
-        "valid_image_save_interval": 1,
+        "model_save_interval": 3,
+        "valid_image_save_interval": 3,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 90
@@ -13,26 +13,20 @@
         "train_valid_split": {
             "name": "source",
             "config": {
-                "valid_sources": [
-                    "ethz_1",
-                    "inrae_1"
-                ]
+                "valid_sources": ["ethz_1", "inrae_1"]
             }
         }
     },
     "model": {
-        "name": "faster_rcnn",
+        "name": "efficient_det", 
         "config": {
-            "backbone": "resnet50_coco",
-            "pool_layers_num": 4,
-            "pooled_size": 7,
-            "class_num": 2,
-            "pretrained": true
+            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
+            "image_size": 256
         }
     },
     "train": {
-        "batch_size": 8,
-        "epochs": 10,
+        "batch_size": 1,
+        "epochs": 50,
         "random_annotation": {
             "drop": {
                 "p": 0.0
@@ -64,7 +58,7 @@
             "name": "Step",
             "config": {
                 "step_size": 10,
-                "gamma": 0.5,
+                "gamma": 0.1,
                 "last_epoch": -1
             }
         },
@@ -75,7 +69,7 @@
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.3
+            "min_confidence": 0.2
         },
         "post_processor": {
             "name": "nms",
