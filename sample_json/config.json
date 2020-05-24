@@ -73,12 +73,12 @@
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.2
+            "min_confidence": 0.3
         },
         "post_processor": {
-            "name": "soft_nms",
+            "name": "nms",
             "config": {
-                "sigma": 0.00000001
+                "threshold": 0.2
             }
         }
     }
