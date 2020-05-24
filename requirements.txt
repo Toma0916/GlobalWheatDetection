@@ -1,0 +1,14 @@
+numba==0.49.1 
+numpy==1.18.1
+pandas==1.0.3
+opencv-python
+scikit-learn==0.22.1 
+torch==1.5.0 
+torchvision==0.6.0 
+albumentations==0.4.5
+mlflow==1.8.0 
+timm==0.1.26
+pycocotools==2.0.0
+tqdm
+tensorboard
+omegaconf
