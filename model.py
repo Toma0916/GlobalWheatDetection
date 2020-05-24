@@ -53,6 +53,7 @@ from albumentations.core.transforms_interface import DualTransform
 from utils.effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from utils.effdet.efficientdet import HeadNet
 
+from utils.functions import xywh2xyxy
 
 def efficientdet_model(image_size, pretrained_path=None, class_num=1):
     config = get_efficientdet_config('tf_efficientdet_d5')
@@ -91,7 +92,7 @@ class Model:
         self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
 
         # TODO: This is hardcoded 
-        self.image_scale = 1 # self.image_size/1024 
+        self.image_scale = 1 
 
     def __call__(self, images, targets):
         if self.model_name == 'faster_rcnn':
@@ -117,27 +118,11 @@ class Model:
                 return {'loss': loss}
             else:
                 outputs, (loss, _, _) = self.model(images, boxes, labels)
-                preds = [{'boxes': res[:, :4],
-                          'labels': res[:, 4],
-                          'scores': res[:, 5]} for res in outputs]
+                preds = [{'boxes': xywh2xyxy(res[:, :4])[:, [1,0,3,2]],
+                          'labels': res[:, 5],
+                          'scores': res[:, 4]} for res in outputs]
+                
                 return preds, {'loss': loss}
-            # new_targets = {}
-            # new_targets['bbox'] = [target['boxes'][:,[1,0,3,2]].to(self.device).float() for target in targets]
-            # new_targets['cls'] = [target['labels'].to(self.device).float() for target in targets]
-            # images = torch.stack(images).to(self.device).float()
-            # if self.is_train:
-            #     loss_dict = self.model(images, new_targets)
-            #     return loss_dict
-            # else:
-            #     # TODO: Koko kirei ni suru
-            #     new_targets['img_size'] = torch.full((len(images), 2), self.image_size).to(self.device)
-            #     new_targets['img_scale'] = (torch.ones(len(images),1) * self.image_scale).to(self.device)
-            #     outputs = self.model(images, new_targets)
-            #     preds = [{'boxes': res[:, :4],
-            #               'labels': res[:, 4],
-            #               'scores': res[:, 5]} for res in outputs['detections']]
-            #     loss_dict = {k: v for k, v in outputs.items() if 'loss' in k}
-            #     return preds, loss_dict
 
     def to(self, device):
         self.model.to(device)

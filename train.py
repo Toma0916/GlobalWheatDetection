@@ -110,7 +110,7 @@ def evaluate_epoch():
                 
             logger.send_score(original_metric_scores, 'original')
             logger.send_score(processed_metric_scores, 'processed')
-            
+    print(preds)
     # 最後のevalのloopで生成されたものを保存する
     logger.send_images(images, image_ids, target_boxes, preds, processed_outputs)
     logger.end_valid_epoch()
