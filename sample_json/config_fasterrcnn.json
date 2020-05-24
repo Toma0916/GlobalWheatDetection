@@ -5,7 +5,7 @@
         "experiment_name": "sample",
         "seed": 99,
         "model_save_interval": 50,
-        "valid_image_save_interval": 3,
+        "valid_image_save_interval": 1,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 90
@@ -21,15 +21,18 @@
         }
     },
     "model": {
-        "name": "efficient_det",
+        "name": "faster_rcnn",
         "config": {
-            "pretrained_path": "./weights/effdet/efficientdet_d5-ef44aea8.pth",
-            "image_size": 256
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
+            "class_num": 2,
+            "pretrained": true
         }
     },
     "train": {
-        "batch_size": 1,
-        "epochs": 50,
+        "batch_size": 8,
+        "epochs": 10,
         "random_annotation": {
             "drop": {
                 "p": 0.0
@@ -72,7 +75,7 @@
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.2
+            "min_confidence": 0.3
         },
         "post_processor": {
             "name": "nms",
