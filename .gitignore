@@ -3,6 +3,6 @@
 /weights
 *.pyc
 
-# sampleの実験は共有しない
+# mlflow: sampleに対応する
 /mlruns/1/*
 !/mlruns/1/meta.yaml

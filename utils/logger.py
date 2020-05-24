@@ -207,7 +207,9 @@ class Logger:
 
 
     def initialize_mlflow(self, config):
-        # mlflow
+        mlflow.set_tracking_uri('./mlruns')
+        if not bool(mlflow.get_experiment_by_name(self.experiment_name)):
+            mlflow.create_experiment(self.experiment_name, artifact_location=None)
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
         mlflow.log_params(params_to_mlflow_format(config))
