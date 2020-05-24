@@ -64,7 +64,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - filtering by confidence score
   - non maximum supression
   - soft non maximum supression
-  - [WIP] weighted boxes fusion
+  - weighted boxes fusion
 
 - other utils
   - TensorBoard (run `tensorboard --logdir ./output` in root)
