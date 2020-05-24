@@ -165,8 +165,8 @@ class ImageStorage():
             if (self.processed_predict_boxes is not None) and (self.processed_predict_scores is not None):            
                 for j in range(self.processed_predict_scores[i].shape[0]):
                     box = self.processed_predict_boxes[i][j]
-                    cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220/255, 0), 3)
-                    cv2.putText(image, '%f' % self.processed_predict_scores[i][j], (box[0], box[1]), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
+                    cv2.rectangle(image, (int(box[0]), int(box[1])), (int(box[2]), int(box[3])), (0, 220/255, 0), 3)
+                    cv2.putText(image, '%f' % self.processed_predict_scores[i][j], (int(box[0]), int(box[1])), cv2.FONT_HERSHEY_PLAIN, 2.0, (0, 220/255, 0), 2, cv2.LINE_AA)
 
             id_image_dict[self.image_ids[i]] = image
         return id_image_dict    

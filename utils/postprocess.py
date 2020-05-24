@@ -86,8 +86,16 @@ def filter_score(outputs, threshold_score):
 # Copyright (c) 2015 Microsoft
 # Licensed under The MIT License [see LICENSE for details]
 # Written by Ross Girshick
+# -> aranged
 # --------------------------------------------------------
-def non_maximum_supression_each(bounding_boxes, confidence_score, threshold):
+def non_maximum_supression_each(bounding_boxes, confidence_score, threshold=None, sigma=None, method_type='original'):
+    """
+    When method type is 'original, threshold is used and sigma is ignored
+    When method type is 'soft, threshold is ignored and sigma is used
+    """
+
+    assert method_type in ['original', 'soft'], "method_type must be in ['original', 'soft']"
+
     # If no bounding boxes, return empty list
     if len(bounding_boxes) == 0:
         return [], []
@@ -136,9 +144,13 @@ def non_maximum_supression_each(bounding_boxes, confidence_score, threshold):
 
         # Compute the ratio between intersection and union
         ratio = intersection / (areas[index] + areas[order[:-1]] - intersection)
-
-        left = np.where(ratio < threshold)
-        order = order[left]
+        if method_type == 'original':
+            left = np.where(ratio < threshold)
+            order = order[left]
+        elif method_type == 'soft':
+            weights = np.exp(-(ratio*ratio)/sigma)
+            confidence_score[np.where(index<order)[0]] = weights * confidence_score[np.where(index<order)[0]]
+            order = order[:-1]
 
     return picked_boxes, picked_score
 
@@ -147,7 +159,7 @@ def non_maximum_supression(outputs, threshold):
     
     for i, output in enumerate(outputs):
 
-        picked_boxes, picked_scores = non_maximum_supression_each(output['boxes'], output['scores'], threshold)        
+        picked_boxes, picked_scores = non_maximum_supression_each(output['boxes'], output['scores'], threshold=threshold, sigma=None, method_type='original')        
         processed_output = {}
         processed_output['boxes'] = np.array(picked_boxes)
         processed_output['scores'] = np.array(picked_scores)
@@ -157,11 +169,135 @@ def non_maximum_supression(outputs, threshold):
     return  outputs
 
 
-def soft_non_maximum_supression(outputs, threshold):
+def soft_non_maximum_supression(outputs, sigma):
+
+    for i, output in enumerate(outputs):
+
+        picked_boxes, picked_scores = non_maximum_supression_each(output['boxes'], output['scores'], threshold=None, sigma=sigma, method_type='soft')    
+        processed_output = {}
+        processed_output['boxes'] = np.array(picked_boxes)
+        processed_output['scores'] = np.array(picked_scores)
+        processed_output['labels'] = np.ones(len(picked_boxes))
+        outputs[i] = processed_output
+
     return outputs
 
 
+
+def weighted_boxes_fusion_each(bounding_boxes, confidence_score, threshold=None):
+    """
+    When method type is 'original, threshold is used and sigma is ignored
+    When method type is 'soft, threshold is ignored and sigma is used
+    """
+
+    # If no bounding boxes, return empty list
+    if len(bounding_boxes) == 0:
+        return [], []
+
+    # Bounding boxes
+    boxes = np.array(bounding_boxes)
+
+    # coordinates of bounding boxes
+    start_x = boxes[:, 0]
+    start_y = boxes[:, 1]
+    end_x = boxes[:, 2]
+    end_y = boxes[:, 3]
+
+    # Confidence scores of bounding boxes
+    score = np.array(confidence_score)
+
+    # Picked bounding boxes
+    picked_boxes = []
+    picked_score = []
+
+    # Onetime variables
+    fusion_boxes = np.array([])
+    material_boxes = []
+    material_confidences = []
+    
+    # Compute areas of bounding boxes
+    areas = (end_x - start_x + 1) * (end_y - start_y + 1)
+
+    # Sort by confidence score of bounding boxes
+    order = np.argsort(score)
+
+    # Initialize
+    fusion_boxes = boxes[order[-1]:order[-1]+1, :]
+    material_boxes = [boxes[order[-1]:order[-1]+1, :]]
+    material_confidences = [score[order[-1]:order[-1]+1]]
+    order = order[:-1]
+
+    # Iterate bounding boxes
+    while order.size > 0:
+        # The index of largest confidence score
+        index = order[-1]
+
+        f_start_x = fusion_boxes[:, 0]
+        f_start_y = fusion_boxes[:, 1]
+        f_end_x = fusion_boxes[:, 2]
+        f_end_y = fusion_boxes[:, 3]
+        f_areas = (f_end_x - f_start_x + 1) * (f_end_y - f_start_y + 1)
+
+        # Compute ordinates of intersection-over-union(IOU)
+        x1 = np.maximum(start_x[index], f_start_x)
+        x2 = np.minimum(end_x[index], f_end_x)
+        y1 = np.maximum(start_y[index], f_start_y)
+        y2 = np.minimum(end_y[index], f_end_y)
+
+        # Compute areas of intersection-over-union
+        w = np.maximum(0.0, x2 - x1 + 1)
+        h = np.maximum(0.0, y2 - y1 + 1)
+        intersection = w * h
+
+        # Compute the ratio between intersection and union
+        ratio = intersection / (areas[index] + f_areas - intersection)
+
+        # Count match
+        mtcs = np.where(threshold < ratio)[0]
+
+        if mtcs.shape[0] == 0:
+            fusion_boxes = np.append(fusion_boxes, boxes[index:index+1, :], axis=0)
+            material_boxes.append(boxes[index:index+1, :])
+            material_confidences.append(score[index:index+1])
+            order = order[:-1]
+            continue
+        
+        for mtc in mtcs:
+            material_boxes[mtc] = np.append(material_boxes[mtc], boxes[index:index+1], axis=0)
+            material_confidences[mtc] = np.append(material_confidences[mtc], score[index:index+1])
+
+        order = order[:-1]
+
+    # Fusion boxes
+    for i in range(len(material_boxes)):
+
+        material_num = material_boxes[i].shape[0]
+        cofidence_sum = np.sum(material_confidences[i])
+
+        fusion_box = np.zeros(4)
+        fusion_box[0] = np.sum(material_boxes[i][:, 0] * material_confidences[i])/cofidence_sum
+        fusion_box[1] = np.sum(material_boxes[i][:, 1] * material_confidences[i])/cofidence_sum
+        fusion_box[2] = np.sum(material_boxes[i][:, 2] * material_confidences[i])/cofidence_sum
+        fusion_box[3] = np.sum(material_boxes[i][:, 3] * material_confidences[i])/cofidence_sum
+
+        fusion_confidence = cofidence_sum / material_num
+
+        picked_boxes.append(fusion_box)
+        picked_score.append(fusion_confidence)
+  
+    return picked_boxes, picked_score
+
+
 def weighted_boxes_fusion(outputs, threshold):
+
+    for i, output in enumerate(outputs):
+
+        picked_boxes, picked_scores = weighted_boxes_fusion_each(output['boxes'], output['scores'], threshold)    
+        processed_output = {}
+        processed_output['boxes'] = np.array(picked_boxes)
+        processed_output['scores'] = np.array(picked_scores)
+        processed_output['labels'] = np.ones(len(picked_boxes))
+        outputs[i] = processed_output
     return outputs
 
 
@@ -169,23 +305,19 @@ def postprocessing(outputs, config):
 
     # detach and to cpu
     outputs = detach_outputs(outputs)
-
+            
+    if not config["post_processor"]["name"]=="":    
+        ensemble_boxes_method_list = {
+            "nms": non_maximum_supression,
+            "soft_nms": soft_non_maximum_supression,
+            "wbf": weighted_boxes_fusion
+        }
+        ensemble_boxes_method_name = config['post_processor']['name'] 
+        assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(ensemble_boxes_method_list.keys()))
+        outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
+        print('hoge!!!')
     # score filter 
     outputs = filter_score(copy.deepcopy(outputs), config['confidence_filter']['min_confidence'])
-
-    ensemble_boxes_method_list = {
-        "nms": non_maximum_supression,
-        "WIP_soft_nms": soft_non_maximum_supression,
-        "WIP_wbf": weighted_boxes_fusion
-    }
-    
-    if not config["post_processor"]["name"] in config.keys():
-        return outputs
-    
-    ensemble_boxes_method_name = config['post_processor']['name'] 
-    assert ensemble_boxes_method_name in ensemble_boxes_method_list.keys(), 'Ensembling boxes method\'s name is not valid. Available methods: %s' % str(list(ensemble_boxes_method_list.keys()))
-
-    outputs = ensemble_boxes_method_list[ensemble_boxes_method_name](copy.deepcopy(outputs), **config['post_processor']['config'])
     
     return outputs
 

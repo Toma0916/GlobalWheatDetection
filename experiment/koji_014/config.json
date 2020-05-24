@@ -1,10 +1,11 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "koji/exp_014",
+        "output_dirname": "koji/exp_014_branch_master",
         "experiment_name": "manhattan",
         "seed": 42,
         "model_save_interval": 25,
+        "valid_image_save_interval": 1,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 90
