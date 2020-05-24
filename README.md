@@ -80,9 +80,9 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - torchvision=0.6.0 
 - albumentations=0.4.5
 - mlflow=1.8.0 
-- cython, pycocotools (TBD)
-- timm==0.1.26
-- pycocotools==2.0.0
+- timm=0.1.26
+- pycocotools=2.0.0
+- omegaconf=2.0.0
 - cython
 
 ## Usage
