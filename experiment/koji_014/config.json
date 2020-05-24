@@ -1,0 +1,88 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "koji/exp_014_branch_master",
+        "experiment_name": "manhattan",
+        "seed": 42,
+        "model_save_interval": 25,
+        "valid_image_save_interval": 1,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        }
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
+            "class_num": 2,
+            "pretrained": true
+        }
+    },
+    "train": {
+        "batch_size": 8,
+        "epochs": 51,
+        "optimizer": {
+            "name": "sgd",
+            "config": {
+                "lr": 0.005,
+                "momentum": 0.9,
+                "weight_decay": 0.0005
+                },
+                "eps": 1e-8
+            },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.5,
+                "last_epoch": -1
+            }
+        },
+        "augment": {
+            "mosaic": {
+                "p": 0.5
+            },
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "blur": {
+                "p": 0.5
+            },
+            "motion_blur": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5,
+                "limit": 0.6
+            },
+            "random_contrast": {
+                "p": 0.5,
+                "limit": {
+                    "tuple": {
+                        "1": 0.7,
+                        "2": 0.9
+                    }
+                }
+            },
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.2
+        },
+        "post_processor": {
+            "name": "nms",
+            "config": {
+                "threshold": 0.2
+            }
+        }
+    }
+}
