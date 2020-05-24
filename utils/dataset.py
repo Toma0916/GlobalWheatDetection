@@ -110,7 +110,7 @@ class GWDDataset(DatasetMixin):
         self.indices = np.arange(len(self.image_ids))
         self.image_size = 1024
 
-        transform = Transform(self.config['train']['augment'], self.is_train)
+        transform = Transform(self.config, self.is_train)
         super(GWDDataset, self).__init__(transform=transform)
 
         dff = self.df[['image_id', 'source']].drop_duplicates()

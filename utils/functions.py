@@ -203,3 +203,11 @@ def detach_outputs(outputs):
         detached_output['scores'] = output['scores'].cpu().detach().numpy()
         outputs[i] = detached_output
     return outputs
+
+def xyxy2xywh(boxes):
+    return 0
+
+def xywh2xyxy(boxes):
+    boxes[:, 2] = boxes[:, 2] + boxes[:, 0]
+    boxes[:, 3] = boxes[:, 3] + boxes[:, 1]
+    return boxes

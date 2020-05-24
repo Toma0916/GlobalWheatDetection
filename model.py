@@ -49,6 +49,22 @@ import sklearn.metrics
 import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
+# --- EfficientDet ---
+from utils.effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
+from utils.effdet.efficientdet import HeadNet
+
+from utils.functions import xywh2xyxy
+
+def efficientdet_model(image_size, pretrained_path=None, class_num=1):
+    config = get_efficientdet_config('tf_efficientdet_d5')
+    net = EfficientDet(config, pretrained_backbone=True)
+    if not pretrained_path is None:
+        checkpoint = torch.load(pretrained_path)
+        net.load_state_dict(checkpoint)
+    config.num_classes = class_num
+    config.image_size = image_size
+    net.class_net = HeadNet(config, num_outputs=config.num_classes, norm_kwargs=dict(eps=.001, momentum=.01))
+    return DetBenchTrain(net, config)
 
 def fasterrcnn_model(backbone, class_num=2, pool_layers_num=4, pooled_size=7, pretrained=True):
     """
@@ -70,7 +86,6 @@ def fasterrcnn_model(backbone, class_num=2, pool_layers_num=4, pooled_size=7, pr
     }
 
     assert backbone in backbone_list.keys(), 'Backbone\'s name is not valid. Available backbones: %s' % str(list(backbone_list.keys()))
-
     if backbone == 'resnet50_coco':
         # 今まで使っていたmodel、headまでpretrainedでweightsを読み込んでおり構造は弄れない
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(pretrained=pretrained)
@@ -95,12 +110,77 @@ def fasterrcnn_model(backbone, class_num=2, pool_layers_num=4, pooled_size=7, pr
 
     return model 
 
+class Model:
+    def __init__(self, config):
+        model_list = {
+            'faster_rcnn': fasterrcnn_model,
+            'efficient_det': efficientdet_model
+        }
+        assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
+        self.model_name = config['name']
+        self.model = model_list[config['name']](**config['config'])
+        self.is_train = True
+        self.device = None
+        self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
+
+        # TODO: This is hardcoded 
+        self.image_scale = 1 
+
+    def __call__(self, images, targets):
+        if self.model_name == 'faster_rcnn':
+            images = list(image.float().to(self.device) for image in images)
+            targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
+            if self.is_train:
+                loss = self.model(images, targets)
+                return loss
+            else:
+                self.model.train()
+                loss_dict = self.model(images, targets)
+
+                self.model.eval()
+                preds = self.model(images, targets)
+                return preds, loss_dict
+
+        elif self.model_name == 'efficient_det':
+            images = torch.stack(images).to(self.device).float()
+            boxes = [target['boxes'].to(self.device).float() for target in targets]
+            labels = [target['labels'].to(self.device).float() for target in targets]
+            if self.is_train:
+                loss, _, _ = self.model(images, boxes, labels)
+                return {'loss': loss}
+            else:
+                outputs, (loss, _, _) = self.model(images, boxes, labels)
+                preds = [{'boxes': xywh2xyxy(res[:, :4])[:, [1,0,3,2]],
+                          'labels': res[:, 5],
+                          'scores': res[:, 4]} for res in outputs]
+                
+                return preds, {'loss': loss}
+
+    def to(self, device):
+        self.model.to(device)
+        self.device = device
+        return self
+
+    def eval(self):
+        self.model.eval()
+        self.is_train = False
+
+    def train(self):
+        self.model.train()
+        self.is_train = True
+
+    def parameters(self):
+        return self.model.parameters()
+    
+    def state_dict(self):
+        return self.model.state_dict()
 
     
 def get_model(config):
 
     model_list = {
         'faster_rcnn': fasterrcnn_model,
+        'efficient_det': efficientdet_model
     }
 
     assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))

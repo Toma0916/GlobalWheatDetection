@@ -1,10 +1,10 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "koji/exp_001",
+        "output_dirname": "koji/exp_010",
         "experiment_name": "manhattan",
         "seed": 42,
-        "model_save_interval": 5,
+        "model_save_interval": 10,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 90
@@ -13,26 +13,33 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backbone": "resnet50_coco",
+            "backbone": "fasterrcnn_resnet50_fpn",
             "class_num": 2,
             "pretrained": true
         }
     },
     "train": {
         "batch_size": 8,
-        "epochs": 100,
+        "epochs": 51,
         "optimizer": {
-            "name": "sgd",
+            "name": "adam",
             "config": {
-                "lr": 0.005,
-                "momentum": 0.9,
-                "weight_decay": 0.0005
+                "lr": 0.0001,
+                "betas": {
+                    "tuple": {
+                        "b1": 0.5,
+                        "b2": 0.999
+                    }
+                },
+                "eps": 1e-8
             }
         },
         "scheduler": {
-            "name": "WarmupCosineAnnealing",
+            "name": "Step",
             "config": {
-                "T_max": 70
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
             }
         },
         "augment": {
@@ -48,10 +55,7 @@
             "random_rotate_90": {
                 "p": 0.5
             },
-            "random_brightness": {
-                "p": 1.0
-            },
-            "random_contrast": {
+            "hsv": {
                 "p": 1.0
             },
             "test_time_augment": false
