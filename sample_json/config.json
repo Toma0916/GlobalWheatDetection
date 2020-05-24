@@ -20,13 +20,16 @@
     "model": {
         "name": "efficient_det", 
         "config": {
-            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
-            "image_size": 256
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
+            "class_num": 2,
+            "pretrained": true
         }
     },
     "train": {
-        "batch_size": 1,
-        "epochs": 50,
+        "batch_size": 4,
+        "epochs": 10,
         "random_annotation": {
             "drop": {
                 "p": 0.0
