@@ -1,0 +1,149 @@
+{
+    "debug": true,
+    "general": {
+        "output_dirname": "sample",
+        "experiment_name": "manhattan",
+        "seed": 99,
+        "model_save_interval": 3,
+        "valid_image_save_interval": 3,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        },
+        "train_valid_split": {
+            "name": "source",
+            "config": {
+                "valid_sources": [
+                    "ethz_1",
+                    "inrae_1"
+                ]
+            }
+        },
+        "prefix": "gn"
+    },
+    "model": {
+        "name": "efficient_det",
+        "config": {},
+        "prefix": "md"
+    },
+    "train": {
+        "batch_size": 4,
+        "epochs": 2,
+        "random_annotation": {
+            "drop": {
+                "p": 0.0
+            },
+            "vibration": {
+                "max_ratio": 0.0
+            }
+        },
+        "sampler": {
+            "name": "balance_sources",
+            "config": {
+                "strength": 1000
+            }
+        },
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "betas": [
+                    0.5,
+                    0.999
+                ],
+                "eps": 1e-08
+            }
+        },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
+            }
+        },
+        "augment": {
+            "test_time_augment": false,
+            "prefix": "ag",
+            "horizontal_flip": {
+                "p": 0.0
+            },
+            "vertical_flip": {
+                "p": 0.0
+            },
+            "random_rotate_90": {
+                "p": 0.0
+            },
+            "blur": {
+                "p": 0.0
+            },
+            "motion_blur": {
+                "p": 0.0
+            },
+            "median_blur": {
+                "p": 0.0
+            },
+            "gaussian_blur": {
+                "p": 0.0
+            },
+            "optical_distortion": {
+                "p": 0.0
+            },
+            "grid_distortion": {
+                "p": 0.0
+            },
+            "elastic_transform": {
+                "p": 0.0
+            },
+            "clahe": {
+                "p": 0.0
+            },
+            "channel_shuffle": {
+                "p": 0.0
+            },
+            "random_gamma": {
+                "p": 0.0
+            },
+            "hsv": {
+                "p": 0.0
+            },
+            "rgb_shift": {
+                "p": 0.0
+            },
+            "random_brightness": {
+                "p": 0.0
+            },
+            "random_contrast": {
+                "p": 0.0
+            },
+            "random_sized_bbox_safe_crop": {
+                "p": 0.0,
+                "height": 1024,
+                "width": 1024
+            },
+            "gauss_noise": {
+                "p": 0.0
+            },
+            "cutout": {
+                "p": 0.0
+            },
+            "mosaic": {
+                "p": 0.0
+            }
+        },
+        "prefix": "tr"
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.2
+        },
+        "post_processor": {
+            "name": "nms",
+            "config": {
+                "threshold": 0.2
+            }
+        },
+        "prefix": "vl"
+    }
+}

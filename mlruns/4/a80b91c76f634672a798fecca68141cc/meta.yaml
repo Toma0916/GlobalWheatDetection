@@ -1,0 +1,15 @@
+artifact_uri: file:///home/minoda/git/GlobalWheatDetection/mlruns/4/a80b91c76f634672a798fecca68141cc/artifacts
+end_time: 1590232834234
+entry_point_name: ''
+experiment_id: '4'
+lifecycle_stage: deleted
+name: ''
+run_id: a80b91c76f634672a798fecca68141cc
+run_uuid: a80b91c76f634672a798fecca68141cc
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1590232686872
+status: 3
+tags: []
+user_id: minoda
