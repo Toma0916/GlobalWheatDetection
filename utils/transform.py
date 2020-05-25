@@ -43,6 +43,7 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 from albumentations.pytorch.transforms import ToTensorV2
 
+from utils.functions import random_box, calc_box_overlap
 
 
 def tile4(image_list, target_list, image_id_list):
@@ -157,6 +158,69 @@ def mosaic(image, target, image_id, dataset):
 
 
 
+def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
+    # beta分布 beta(alpha, alpha)からサンプリングしてboxを作る
+
+    l = np.random.beta(alpha, alpha)
+    bbx1, bby1, bbx2, bby2 = random_box(image.shape[0], image.shape[1], l)
+    cut_box = np.array([bbx1, bby1, bbx2, bby2])
+    
+    source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
+    image[bbx1:bbx2, bby1:bby2] = source[0][bbx1:bbx2, bby1:bby2]
+
+
+
+    # org_keep_idx = np.where(calc_box_overlap(target['boxes'], cut_box) < keep_threshold)
+    # org_box1 = np.array([0, 0, image.shape[1], bby1])
+    # org_box2 = np.array([0, bby2, image.shape[1], image.shape[2]])
+    # org_box3 = np.array([0, 0, bbx1, image.shape[2]])
+    # org_box4 = np.array([bbx2, 0, image.shape[1], image.shape[2]])
+
+    src_boxes = source[1]['boxes']
+
+    # print(calc_box_overlap(src_boxes, org_box1))
+
+
+    # src_keep_idx1 = np.where(calc_box_overlap(src_boxes, org_box1) < keep_threshold)[0]
+    # src_keep_idx2 = np.where(calc_box_overlap(src_boxes, org_box2) < keep_threshold)[0]
+    # src_keep_idx3 = np.where(calc_box_overlap(src_boxes, org_box3) < keep_threshold)[0]
+    # src_keep_idx4 = np.where(calc_box_overlap(src_boxes, org_box4) < keep_threshold)[0]
+
+    
+
+    # print(src_keep_idx)
+
+    boxes = np.concatenate([target['boxes'], src_boxes], axis=0)
+    
+    # boxes = target['boxes']
+    # start_x = boxes[:, 0]
+    # start_y = boxes[:, 1]
+    # end_x = boxes[:, 2]
+    # end_y = boxes[:, 3]
+    # k1 = np.where(start_x < bbx1)
+    # k2 = np.where(start_y < bby1)
+    # k3 = np.where(end_x < bbx2)
+    # k4 = np.where(end_y < bby2)
+    # src_keep_idx = np.intersect1d(k1, k2)
+    # src_keep_idx = np.intersect1d(src_keep_idx, k3)
+    # src_keep_idx = np.intersect1d(src_keep_idx, k4)
+    # boxes = target['boxes'][src_keep_idx]
+
+
+
+    area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+    area = torch.as_tensor(area, dtype=torch.float32)
+    labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+    iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+    target['boxes'] = boxes
+    target['labels'] = labels
+    target['area'] = area
+    target['iscrowd'] = iscrowd
+
+    return image, target
+
+
 class Transform:
     """
     https://github.com/katsura-jp/tour-of-albumentations 参考
@@ -170,6 +234,8 @@ class Transform:
 
             # mosaic
             self.mosaic = config['mosaic'] if ('mosaic' in config) else {'p': 0.0}
+            self.cutmix = config['cutmix'] if ('cutmix' in config) else {'p': 0.0}
+
 
             # flip系
             self.horizontal_flip = config['horizontal_flip'] if ('horizontal_flip' in config) else {'p': 0.0}
@@ -205,6 +271,7 @@ class Transform:
 
         else:
             self.mosaic = {'p': 0.0}
+            self.cutmix = {'p': 0.0}
             self.horizontal_flip = {'p': 0.0}
             self.vertical_flip = {'p': 0.0} 
             self.random_rotate_90 = {'p': 0.0}
@@ -230,10 +297,12 @@ class Transform:
     def __call__(self, example, dataset):
 
         image, target, image_id = example
-
+        
         # mosaic
         if np.random.rand() < self.mosaic['p']:
             image, target = mosaic(image, target, image_id, dataset)
+        if np.random.rand() < self.cutmix['p']:
+            image, target = cutmix(image, target, image_id, dataset)
             
 
         # for albumentation transforms

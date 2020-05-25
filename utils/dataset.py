@@ -157,7 +157,7 @@ class GWDDataset(DatasetMixin):
             self.config['valid'] = {'apply_bbox_filter': False}
         if self.is_train or self.config['valid']['apply_bbox_filter']:
             target = filter_bboxes_by_size(target, self.config['general']['bbox_filter'])
-
+            
         # get another sample if number of bounding boxes is zero
         if len(target['boxes']) == 0:
             return self.get_example(np.random.randint(0, len(self)))

@@ -65,6 +65,7 @@ def get_filtered_bboxes(target, threshold, max_or_min):
     target_filtered = {'boxes': target['boxes'][filtered], 
                        'labels': target['labels'][filtered],
                        'area': target['area'][filtered],
+                       'iscrowd': target['iscrowd'][filtered],
                        'image_id': target['image_id']}
     return target_filtered
 
@@ -211,3 +212,47 @@ def xywh2xyxy(boxes):
     boxes[:, 2] = boxes[:, 2] + boxes[:, 0]
     boxes[:, 3] = boxes[:, 3] + boxes[:, 1]
     return boxes
+
+def random_box(h, w, l):
+    cut_rat = np.sqrt(1. - l)
+    cut_w = np.int(w * cut_rat)
+    cut_h = np.int(h * cut_rat)
+
+    # uniform
+    cx = np.random.randint(w//2 - w//4, w//2 + w//4)
+    cy = np.random.randint(h//2 - h//4, h//2 + h//4)
+
+    bbx1 = np.clip(cx - cut_w // 2, 0, w)
+    bby1 = np.clip(cy - cut_h // 2, 0, h)
+    bbx2 = np.clip(cx + cut_w // 2, 0, w)
+    bby2 = np.clip(cy + cut_h // 2, 0, h)
+
+    if bbx1 == 0:
+      bbx2 = np.clip(bbx2, w // 6, None)
+    elif bbx2 == w:
+      bbx1 = np.clip(bbx1, None, w - w // 6)
+    
+    if bby1 == 0:
+      bby2 = np.clip(bby2, h // 6, None)
+    elif bby2 == h:
+      bby1 = np.clip(bby1, None, h - h // 6)
+
+      
+    return bbx1, bby1, bbx2, bby2
+
+
+def calc_box_overlap(boxes, box):
+        start_x = boxes[:, 0]
+        start_y = boxes[:, 1]
+        end_x = boxes[:, 2]
+        end_y = boxes[:, 3]
+        area = (end_x - start_x + 1) * (end_y - start_y + 1)
+        x1 = np.maximum(box[0], start_x)
+        x2 = np.minimum(box[2], end_x)
+        y1 = np.maximum(box[1], start_y)
+        y2 = np.minimum(box[3], end_y)
+        w = np.maximum(0.0, x2 - x1 + 1)
+        h = np.maximum(0.0, y2 - y1 + 1)
+        intersection = w * h
+        ratio = intersection/area
+        return ratio
