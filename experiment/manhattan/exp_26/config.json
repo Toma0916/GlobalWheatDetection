@@ -1,0 +1,57 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "manhattan/exp_26",
+        "experiment_name": "manhattan",
+        "seed": 42,
+        "model_save_interval": 5,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 100000,
+            "min_bbox_size": 100
+        }
+    },
+    "model": {
+        "name": "faster_rcnn", 
+        "config": {
+            "backbone": "resnet50_coco",
+            "class_num": 2,
+            "pretrained": true
+        }
+    },
+    "train": {
+        "batch_size": 8,
+        "epochs": 100,
+        "optimizer": {
+            "name": "sgd",
+            "config": {
+                "lr": 0.005,
+                "momentum": 0.9,
+                "weight_decay": 0.0005
+            }
+        },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
+            }
+        },
+        "augment": {
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.001
+        },
+        "post_processor": {
+            "name": "soft_nms",
+            "config": {
+                "threshold": 0.1
+            }
+        }
+    }
+}

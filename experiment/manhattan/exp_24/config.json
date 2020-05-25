@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "manhattan/exp_12",
+        "output_dirname": "manhattan/exp_24",
         "experiment_name": "manhattan",
         "seed": 42,
         "model_save_interval": 5,
@@ -14,7 +14,7 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backbone": "resnet50_coco",
+            "backbone": "resnet101",
             "class_num": 2,
             "pretrained": true
         }
@@ -67,9 +67,6 @@
                 "width": 1024,
                 "p": 0.5
             },
-            "mosaic": {
-                "p": 0.5
-            },
             "mixup": {
                 "p": 0.5
             },
@@ -79,7 +76,7 @@
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.2
+            "min_confidence": 0.001
         },
         "post_processor": {
             "name": "wbf",

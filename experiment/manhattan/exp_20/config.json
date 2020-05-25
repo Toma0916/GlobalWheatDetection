@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "manhattan/exp_12",
+        "output_dirname": "manhattan/exp_20",
         "experiment_name": "manhattan",
         "seed": 42,
         "model_save_interval": 5,
@@ -14,7 +14,7 @@
     "model": {
         "name": "faster_rcnn", 
         "config": {
-            "backbone": "resnet50_coco",
+            "backbone": "resnet101",
             "class_num": 2,
             "pretrained": true
         }
