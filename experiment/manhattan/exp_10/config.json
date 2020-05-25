@@ -20,7 +20,7 @@
         }
     },
     "train": {
-        "batch_size": 2,
+        "batch_size": 8,
         "epochs": 100,
         "optimizer": {
             "name": "adam",
@@ -44,6 +44,24 @@
             }
         },
         "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5
+            },
             "random_sized_bbox_safe_crop": {
                 "height": 1024,
                 "width": 1024,
@@ -61,7 +79,7 @@
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.2
+            "min_confidence": 0.001
         },
         "post_processor": {
             "name": "soft-nms",
