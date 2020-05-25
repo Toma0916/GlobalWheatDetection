@@ -7,6 +7,7 @@ import gc
 import six
 import json
 import time
+import copy
 import datetime
 from logging import getLogger
 from time import perf_counter
@@ -43,9 +44,10 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 from albumentations.pytorch.transforms import ToTensorV2
 
+from utils.functions import random_box, calc_box_overlap
 
 
-def moisac(image_list, target_list, image_id_list):
+def tile4(image_list, target_list, image_id_list):
 
     s = 1024
     h = 1024
@@ -114,6 +116,105 @@ def moisac(image_list, target_list, image_id_list):
 
     
 
+def mosaic(image, target, image_id, dataset):
+
+    additional_image = 3
+
+    # get other datas from dataset (for mosaic)
+    mosaic_image_sources = [dataset.get_example(i) for i in np.random.choice(np.arange(len(dataset.image_ids)), additional_image, replace=False)]
+
+    source_image_list = [image for _ in range(4 - additional_image)] 
+    source_target_list = [target for _ in range(4 - additional_image)] 
+    source_image_id_list = [image_id for _ in range(4 - additional_image)] 
+    for source in mosaic_image_sources:
+        source_image_list.append(source[0])
+        source_target_list.append(source[1])
+        source_image_id_list.append(source[2])
+    
+    # shulle source
+    image_list = []
+    target_list = []
+    image_id_list = []
+    for i in np.random.permutation(np.arange(4)):
+        image_list.append(source_image_list[i])
+        target_list.append(source_target_list[i])
+        image_id_list.append(source_image_id_list[i])
+
+    # apply mosaic
+    image, boxes, image_id = tile4(image_list, target_list, image_id_list)
+
+    # recalculate area and label and iscrowed
+    area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+    area = torch.as_tensor(area, dtype=torch.float32)
+    labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+    iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+    target['boxes'] = boxes
+    target['labels'] = labels
+    # target['image_id'] = torch.tensor([image_id])  # use base image image_id (concat image_id raise length is too long error)
+    target['area'] = area
+    target['iscrowd'] = iscrowd
+
+    return image, target
+
+
+
+def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
+    # beta分布 beta(alpha, alpha)からサンプリングしてboxを作る
+
+    org_image = copy.deepcopy(image)
+    org_target = copy.deepcopy(target)
+
+    l = np.random.beta(alpha, alpha)
+    bbx1, bby1, bbx2, bby2 = random_box(image.shape[0], image.shape[1], l)
+    cut_box = np.array([bbx1, bby1, bbx2, bby2])
+    
+    source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
+    
+    image[bby1:bby2, bbx1:bbx2] = source[0][bby1:bby2, bbx1:bbx2]
+
+    src_boxes = source[1]['boxes']
+    org_keep_idx = np.where(calc_box_overlap(target['boxes'], cut_box) < keep_threshold)[0]
+    src_keep_idx = np.where(calc_box_overlap(src_boxes, cut_box) >(1.0 - keep_threshold))[0]
+
+    boxes = np.concatenate([target['boxes'][org_keep_idx, :], src_boxes[src_keep_idx, :]], axis=0)
+    
+    area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+    area = torch.as_tensor(area, dtype=torch.float32)
+    labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+    iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+    target['boxes'] = boxes
+    target['labels'] = labels
+    target['area'] = area
+    target['iscrowd'] = iscrowd
+    
+    if boxes.shape[0] == 0:
+        return org_image, org_target
+    else:
+        return image, target
+
+
+def mixup(image, target, image_id, dataset, alpha=2.0):
+    l = np.random.beta(alpha, alpha)
+    source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
+    
+    image = image * l + source[0] * (1 - l)
+    src_boxes = source[1]['boxes']
+    boxes = np.concatenate([target['boxes'], src_boxes], axis=0)
+    area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+    area = torch.as_tensor(area, dtype=torch.float32)
+    labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+    iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+    target['boxes'] = boxes
+    target['labels'] = labels
+    target['area'] = area
+    target['iscrowd'] = iscrowd
+
+    return image, target
+
+
 
 class Transform:
     """
@@ -128,6 +229,9 @@ class Transform:
 
             # mosaic
             self.mosaic = config['mosaic'] if ('mosaic' in config) else {'p': 0.0}
+            self.cutmix = config['cutmix'] if ('cutmix' in config) else {'p': 0.0}
+            self.mixup = config['mixup'] if ('mixup' in config) else {'p': 0.0}
+
 
             # flip系
             self.horizontal_flip = config['horizontal_flip'] if ('horizontal_flip' in config) else {'p': 0.0}
@@ -163,6 +267,8 @@ class Transform:
 
         else:
             self.mosaic = {'p': 0.0}
+            self.cutmix = {'p': 0.0}
+            self.mixup = {'p': 0.0}
             self.horizontal_flip = {'p': 0.0}
             self.vertical_flip = {'p': 0.0} 
             self.random_rotate_90 = {'p': 0.0}
@@ -188,36 +294,14 @@ class Transform:
     def __call__(self, example, dataset):
 
         image, target, image_id = example
-
+        
         # mosaic
         if np.random.rand() < self.mosaic['p']:
-
-            # get other datas from dataset (for mosaic)
-            mosaic_image_sources = [dataset.get_example(i) for i in np.random.choice(np.arange(len(dataset.image_ids)), 3, replace=False)]
-
-            image_list = [image]
-            target_list = [target]
-            image_id_list = [image_id]
-            for source in mosaic_image_sources:
-                image_list.append(source[0])
-                target_list.append(source[1])
-                image_id_list.append(source[2])
-            
-            # apply mosaic
-            image, boxes, image_id = moisac(image_list, target_list, image_id_list)
-
-            # recalculate area and label and iscrowed
-            area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-            area = torch.as_tensor(area, dtype=torch.float32)
-            labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
-            iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
-
-            target['boxes'] = boxes
-            target['labels'] = labels
-            # target['image_id'] = torch.tensor([image_id])  # use base image image_id (concat image_id raise length is too long error)
-            target['area'] = area
-            target['iscrowd'] = iscrowd
-
+            image, target = mosaic(image, target, image_id, dataset)
+        if np.random.rand() < self.cutmix['p']:
+            image, target = cutmix(image, target, image_id, dataset)
+        if np.random.rand() < self.mixup['p']:
+            image, target = mixup(image, target, image_id, dataset)
 
         # for albumentation transforms
         sample = {
