@@ -1,34 +1,26 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "koji/exp_015_effdet",
+        "output_dirname": "koji/exp_016",
         "experiment_name": "manhattan",
-        "seed": 99,
-        "model_save_interval": 3,
-        "valid_image_save_interval": 1,
+        "seed": 42,
+        "model_save_interval": 2,
         "bbox_filter": {
             "max_bbox_size": 100000,
-            "min_bbox_size": 90
+            "min_bbox_size": 100
         }
     },
     "model": {
-        "name": "efficient_det", 
+        "name": "faster_rcnn", 
         "config": {
-            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
-            "image_size": 512
+            "backbone": "resnext50_32x4d",
+            "class_num": 2,
+            "pretrained": false
         }
     },
     "train": {
-        "batch_size": 2,
-        "epochs": 100,
-        "random_annotation": {
-            "drop": {
-                "p": 0.0
-            },
-            "vibration": {
-                "max_ratio": 0.0
-            }
-        },
+        "batch_size": 8,
+        "epochs": 51,
         "optimizer": {
             "name": "sgd",
             "config": {
@@ -41,7 +33,7 @@
         "scheduler": {
             "name": "Step",
             "config": {
-                "step_size": 20,
+                "step_size": 10,
                 "gamma": 0.1,
                 "last_epoch": -1
             }
