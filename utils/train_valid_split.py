@@ -1,5 +1,5 @@
+from sklearn.model_selection import StratifiedKFold, GroupKFold
 
-from sklearn.model_selection import StratifiedKFold
 
 def debug_split(dataframe):
     image_ids = dataframe['image_id'].unique()
@@ -38,6 +38,7 @@ def source_split(dataframe, valid_sources=['ethz_1']):
     valid_ids = [k for k, v in imageid_source_dict.items() if v in valid_sources]
     return [(train_ids, valid_ids)]
 
+
 def debug_split_kfold(dataframe, fold_k):
     print('K-Fold by StartifiedKFold.')
     num_to_use = 100
@@ -49,9 +50,8 @@ def debug_split_kfold(dataframe, fold_k):
     image_ids = image_ids[::use_for_each]
     sources = sources[::use_for_each]
 
-    skf = StratifiedKFold(n_splits=fold_k, shuffle=True, random_state=1996)
+    skf = StratifiedKFold(n_splits=fold_k, shuffle=True)
     split = skf.split(image_ids, sources) # second arguement is what we are stratifying by
-
     res = []
     for (train_ids, valid_ids) in split:
         res.append((image_ids[train_ids], image_ids[valid_ids]))
@@ -63,7 +63,7 @@ def random_split_kfold(dataframe, fold_k):
     image_ids = image_source['image_id'].to_numpy()
     sources = image_source['source'].to_numpy()
 
-    skf = StratifiedKFold(n_splits=fold_k, shuffle=True, random_state=1996)
+    skf = StratifiedKFold(n_splits=fold_k, shuffle=True)
     split = skf.split(image_ids, sources) # second arguement is what we are stratifying by
 
     res = []
@@ -71,8 +71,23 @@ def random_split_kfold(dataframe, fold_k):
         res.append((image_ids[train_ids], image_ids[valid_ids]))
     return res
 
-def source_split_kfold(dataframe, fold_k):
-    raise NotImplementedError
+
+def source_split_kfold(dataframe, fold_k, valid_sources=None):
+    """
+    ignore valid_sources when applying K-folds
+    """
+    image_source = dataframe[['image_id', 'source']].drop_duplicates()
+    image_ids = image_source['image_id'].to_numpy()
+    sources = image_source['source'].to_numpy()
+
+    gkf = GroupKFold(n_splits=fold_k)
+    split= gkf.split(image_ids, groups=sources)
+    res = []
+    for (train_ids, valid_ids) in strain_idsplit:
+        res.append((image_ids[], image_ids[valid_ids]))
+    import pdb; pdb.set_trace()
+    return res
+
 
 def train_valid_split(dataframe, config):
 
