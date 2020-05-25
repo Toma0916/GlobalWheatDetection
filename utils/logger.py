@@ -194,6 +194,10 @@ class Logger:
         self.valid_image_save_interval = config['general']['valid_image_save_interval']
         self.experiment_name = config['general']['experiment_name']
         self.save_dir = output_dir
+        if config['general']['kfold'] < 0:
+            self.config_path = str(self.save_dir/"config.json") 
+        else:
+            self.config_path = str(self.save_dir.parent/"config.json") 
 
         self.train_loss_epoch_history = LossAverager()
         self.valid_loss_epoch_history = LossAverager()
@@ -213,7 +217,7 @@ class Logger:
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
         mlflow.log_params(params_to_mlflow_format(config))
-        mlflow.log_artifact(str(self.save_dir/"config.json"))
+        mlflow.log_artifact(self.config_path)
 
     def finish_training(self):
         self.writer.close()

@@ -69,8 +69,36 @@ from utils.train_valid_split import train_valid_split
 
 warnings.simplefilter('ignore')  # 基本warningオフにしたい
 
+def exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, trained_epoch=0):
+    # load model and make parallel
+    device = torch.device('cuda:0')
+    model = Model(config['model']).to(device)
+    # model = get_model(config['model']).to(device)
+    # model = torch.nn.DataParallel(model) 
+    
+    # train setting
+    trainable_params = [p for p in model.parameters() if p.requires_grad]
+    optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
+    scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
-def train_epoch():
+    # log setting
+    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, config=config)
+    
+    # training
+    for epoch in range(trained_epoch+1, config['train']['epochs']+1):
+        if config['general']['kfold'] < 0:
+            print("\r [Epoch %d]" % epoch)
+        else:
+            print("\r [Fold %d : Epoch %d]" % (fold+1, epoch))
+
+        train_epoch(model, train_data_loader, logger, optimizer)
+        evaluate_epoch(model, valid_data_loader, logger, optimizer)
+        if scheduler is not None:
+            scheduler.step()
+    
+    logger.finish_training()
+
+def train_epoch(model, train_data_loader, logger, optimizer):
 
     model.train()
     logger.start_train_epoch()
@@ -90,7 +118,7 @@ def train_epoch():
     logger.end_train_epoch()
 
 
-def evaluate_epoch():
+def evaluate_epoch(model, valid_data_loader, logger, optimizer):
 
     logger.start_valid_epoch()
     with torch.no_grad():
@@ -114,6 +142,18 @@ def evaluate_epoch():
     logger.send_images(images, image_ids, target_boxes, preds, processed_outputs)
     logger.end_valid_epoch()
 
+def get_loader(train_dataframe, valid_dataframe, config):
+
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, config, is_train=True)
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, config, is_train=False)
+
+    def worker_init_fn(worker_id):   
+        random.seed(worker_id+random_seed)   
+        np.random.seed(worker_id+random_seed)   
+    
+    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], sampler=get_sampler(train_dataset, config['train']), num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
+    valid_data_loader = DataLoader(valid_dataset, batch_size=2, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    return train_data_loader, valid_data_loader
 
 def update_dict(d, keys, value):
     if len(keys) == 1:
@@ -158,8 +198,6 @@ if __name__ == '__main__':
     DATAFRAME = convert_dataframe(pd.read_csv(str(SRC_DIR/'train.csv')))
     OUTPUT_DIR = Path('.').resolve()/'output'/config['general']['output_dirname']
 
-    device = torch.device('cuda:0')
-
     if OUTPUT_DIR.name == 'sample' and os.path.exists(OUTPUT_DIR):
         print("'output/sample' is be overwritten.")
         shutil.rmtree(OUTPUT_DIR)
@@ -171,6 +209,10 @@ if __name__ == '__main__':
 
         # copy json to output dir
         os.makedirs(str(OUTPUT_DIR), exist_ok=False)
+        if config['general']['kfold'] > 0:
+            k = config['general']['kfold']
+            for fold in range(k):
+                os.makedirs(str(OUTPUT_DIR/'fold_{0}'.format(fold+1)), exist_ok=False)
         with open(str(OUTPUT_DIR/"config.json"), "w") as f:
             json.dump(config, f, indent=4)
 
@@ -184,47 +226,14 @@ if __name__ == '__main__':
     random.seed(random_seed)  
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)  
-    torch.cuda.manual_seed(random_seed)  
+    torch.cuda.manual_seed(random_seed) 
     
-    # prepare data
-    train_ids, valid_ids = train_valid_split(DATAFRAME, config)
-    train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
-    valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
+    train_and_valid_ids_list = train_valid_split(DATAFRAME, config)
+    for fold, (train_ids, valid_ids) in enumerate(train_and_valid_ids_list):
+        train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
+        valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
+        train_data_loader, valid_data_loader = get_loader(train_dataframe, valid_dataframe, config)
 
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, config, is_train=True)
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, config, is_train=False)
+        OUTPUT_DIR = OUTPUT_DIR if config['general']['kfold'] < 0 else OUTPUT_DIR/'fold_{0}'.format(fold+1)
 
-    def worker_init_fn(worker_id):   
-        random.seed(worker_id+random_seed)   
-        np.random.seed(worker_id+random_seed)   
-    
-    train_data_loader = DataLoader(train_dataset, batch_size=config['train']['batch_size'], sampler=get_sampler(train_dataset, config['train']), num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
-    valid_data_loader = DataLoader(valid_dataset, batch_size=2, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
-
-    # load model and make parallel
-    model = Model(config['model']).to(device)
-    # model = get_model(config['model']).to(device)
-    # model = torch.nn.DataParallel(model) 
-    
-    # train setting
-    trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
-    scheduler = get_scheduler(config['train']['scheduler'], optimizer)
-
-    # log setting
-    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, config=config)
-
-    # training
-    for epoch in range(trained_epoch+1, config['train']['epochs']+1):
-
-        print("\r [Epoch %d]" % epoch)
-
-        train_epoch()
-        evaluate_epoch()
-        if scheduler is not None:
-            scheduler.step()
-    
-    logger.finish_training()
-
-
-
+        exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, trained_epoch=0)
