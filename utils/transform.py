@@ -7,6 +7,7 @@ import gc
 import six
 import json
 import time
+import copy
 import datetime
 from logging import getLogger
 from time import perf_counter
@@ -161,6 +162,9 @@ def mosaic(image, target, image_id, dataset):
 def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
     # beta分布 beta(alpha, alpha)からサンプリングしてboxを作る
 
+    org_image = copy.deepcopy(image)
+    org_target = copy.deepcopy(target)
+
     l = np.random.beta(alpha, alpha)
     bbx1, bby1, bbx2, bby2 = random_box(image.shape[0], image.shape[1], l)
     cut_box = np.array([bbx1, bby1, bbx2, bby2])
@@ -190,9 +194,8 @@ def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
 
     # print(src_keep_idx)
 
-    boxes = np.concatenate([target['boxes'], src_boxes], axis=0)
     
-    # boxes = target['boxes']
+    boxes = target['boxes']
     # start_x = boxes[:, 0]
     # start_y = boxes[:, 1]
     # end_x = boxes[:, 2]
@@ -217,8 +220,32 @@ def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
     target['labels'] = labels
     target['area'] = area
     target['iscrowd'] = iscrowd
+    
+    if boxes.shape[0] == 0:
+        return org_image, org_target
+    else:
+        return image, target
+
+
+def mixup(image, target, image_id, dataset, alpha=0.5):
+    l = np.random.beta(alpha, alpha)
+    source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
+    
+    image = image * l + source[0] * (1 - l)
+    src_boxes = source[1]['boxes']
+    boxes = np.concatenate([target['boxes'], src_boxes], axis=0)
+    area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+    area = torch.as_tensor(area, dtype=torch.float32)
+    labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+    iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+    target['boxes'] = boxes
+    target['labels'] = labels
+    target['area'] = area
+    target['iscrowd'] = iscrowd
 
     return image, target
+
 
 
 class Transform:
@@ -235,6 +262,7 @@ class Transform:
             # mosaic
             self.mosaic = config['mosaic'] if ('mosaic' in config) else {'p': 0.0}
             self.cutmix = config['cutmix'] if ('cutmix' in config) else {'p': 0.0}
+            self.mixup = config['mixup'] if ('mixup' in config) else {'p': 0.0}
 
 
             # flip系
@@ -272,6 +300,7 @@ class Transform:
         else:
             self.mosaic = {'p': 0.0}
             self.cutmix = {'p': 0.0}
+            self.mixup = {'p': 0.0}
             self.horizontal_flip = {'p': 0.0}
             self.vertical_flip = {'p': 0.0} 
             self.random_rotate_90 = {'p': 0.0}
@@ -303,7 +332,8 @@ class Transform:
             image, target = mosaic(image, target, image_id, dataset)
         if np.random.rand() < self.cutmix['p']:
             image, target = cutmix(image, target, image_id, dataset)
-            
+        if np.random.rand() < self.mixup['p']:
+            image, target = mixup(image, target, image_id, dataset)
 
         # for albumentation transforms
         sample = {

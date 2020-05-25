@@ -1,48 +1,99 @@
 {
-    "debug": [true, "debug"],
+    "debug": [
+        true,
+        "debug"
+    ],
     "general": {
         "prefix": "gn",
-        "output_dirname": ["sample", "output_dirname"],
-        "experiment_name": ["sample", "exp_name"],
-        "seed": [42, "seed"],
-        "model_save_interval": [5, "model_save_interval"],
-        "valid_image_save_interval": [5, "valid_image_save_interval"],
+        "output_dirname": [
+            "sample",
+            "output_dirname"
+        ],
+        "experiment_name": [
+            "sample",
+            "exp_name"
+        ],
+        "seed": [
+            42,
+            "seed"
+        ],
+        "model_save_interval": [
+            5,
+            "model_save_interval"
+        ],
+        "valid_image_save_interval": [
+            5,
+            "valid_image_save_interval"
+        ],
         "bbox_filter": {
-            "max_bbox_size": [10000000, "max_bbox_size"],
-            "min_bbox_size": [0, "min_bbox_size"]
+            "max_bbox_size": [
+                10000000,
+                "max_bbox_size"
+            ],
+            "min_bbox_size": [
+                0,
+                "min_bbox_size"
+            ]
         },
         "train_valid_split": {
-            "name": ["random", "train_valid_split"],
+            "name": [
+                "random",
+                "train_valid_split"
+            ],
             "config": {}
         }
     },
     "model": {
         "prefix": "md",
-        "name": ["faster_rcnn", "model"], 
+        "name": [
+            "faster_rcnn",
+            "model"
+        ],
         "config": {}
     },
     "train": {
         "prefix": "tr",
-        "batch_size": [8, "batch_size"],
-        "epochs": [10, "epochs"],
+        "batch_size": [
+            8,
+            "batch_size"
+        ],
+        "epochs": [
+            10,
+            "epochs"
+        ],
         "random_annotation": {
             "drop": {
-                "p": [0.0, "rand_annot_drop_p"]
+                "p": [
+                    0.0,
+                    "rand_annot_drop_p"
+                ]
             },
             "vibration": {
-                "max_ratio": [0.0, "rand_annot_vibr_maxratio"]
+                "max_ratio": [
+                    0.0,
+                    "rand_annot_vibr_maxratio"
+                ]
             }
         },
         "sampler": {
-            "name": ["", "sampler"],
+            "name": [
+                "",
+                "sampler"
+            ],
             "config": {}
         },
         "optimizer": {
-            "name": ["", "optimizer"],
+            "name": [
+                "",
+                "optimizer"
+            ],
             "config": {}
         },
         "scheduler": {
-            "name": ["", "scheduler"],
+            "name": [
+                "",
+                "scheduler"
+            ],
             "config": {}
         },
         "augment": {
@@ -112,17 +163,35 @@
             "mosaic": {
                 "p": 0.0
             },
-            "test_time_augment": [false, "tta"]
+            "cutmix": {
+                "p": 1.0
+            },
+            "mixup": {
+                "p": 1.0
+            },
+            "test_time_augment": [
+                false,
+                "tta"
+            ]
         }
     },
     "valid": {
         "prefix": "vl",
-        "apply_bbox_filter": [false, "bbox_size_filter_invalid"],
+        "apply_bbox_filter": [
+            false,
+            "bbox_size_filter_invalid"
+        ],
         "confidence_filter": {
-            "min_confidence": [0.0, "confid_filter"]
+            "min_confidence": [
+                0.0,
+                "confid_filter"
+            ]
         },
         "post_processor": {
-            "name": ["", "postprocessor"]
+            "name": [
+                "",
+                "postprocessor"
+            ]
         }
     }
 }
