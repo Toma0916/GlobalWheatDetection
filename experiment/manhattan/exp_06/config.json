@@ -19,7 +19,7 @@
         }
     },
     "train": {
-        "batch_size": 8,
+        "batch_size": 2,
         "epochs": 51,
         "optimizer": {
             "name": "adam",
@@ -78,7 +78,7 @@
             "min_confidence": 0.001
         },
         "post_processor": {
-            "name": "soft-nms",
+            "name": "soft_nms",
             "config": {
                 "sigma": 0.1
             }

@@ -82,7 +82,7 @@
             "min_confidence": 0.001
         },
         "post_processor": {
-            "name": "soft-nms",
+            "name": "soft_nms",
             "config": {
                 "sigma": 0.1
             }
