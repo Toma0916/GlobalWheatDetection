@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "manhattan/exp_00",
+        "output_dirname": "manhattan/exp_04",
         "experiment_name": "manhattan",
         "seed": 42,
         "model_save_interval": 5,
