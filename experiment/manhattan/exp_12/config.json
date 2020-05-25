@@ -12,10 +12,11 @@
         }
     },
     "model": {
-        "name": "efficient_det", 
+        "name": "faster_rcnn", 
         "config": {
-            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
-            "image_size": 512
+            "backbone": "resnet50_coco",
+            "class_num": 2,
+            "pretrained": true
         }
     },
     "train": {
@@ -46,6 +47,9 @@
             "random_sized_bbox_safe_crop": {
                 "height": 1024,
                 "width": 1024,
+                "p": 0.5
+            },
+            "mosaic": {
                 "p": 0.5
             },
             "mixup": {

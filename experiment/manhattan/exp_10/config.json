@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "manhattan/exp_08",
+        "output_dirname": "manhattan/exp_10",
         "experiment_name": "manhattan",
         "seed": 42,
         "model_save_interval": 5,
@@ -12,10 +12,11 @@
         }
     },
     "model": {
-        "name": "efficient_det", 
+        "name": "faster_rcnn", 
         "config": {
-            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
-            "image_size": 512
+            "backbone": "resnet50_coco",
+            "class_num": 2,
+            "pretrained": true
         }
     },
     "train": {
@@ -48,7 +49,10 @@
                 "width": 1024,
                 "p": 0.5
             },
-            "mixup": {
+            "cutmix": {
+                "p": 0.5
+            },
+            "mosaic": {
                 "p": 0.5
             },
             "test_time_augment": false
@@ -60,9 +64,9 @@
             "min_confidence": 0.2
         },
         "post_processor": {
-            "name": "wbf",
+            "name": "soft-nms",
             "config": {
-                "threshold": 0.6
+                "sigma": 0.1
             }
         }
     }
