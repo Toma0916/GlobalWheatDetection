@@ -85,7 +85,6 @@ def source_split_kfold(dataframe, fold_k, valid_sources=None):
     res = []
     for (train_ids, valid_ids) in strain_idsplit:
         res.append((image_ids[train_ids], image_ids[valid_ids]))
-    import pdb; pdb.set_trace()
     return res
 
 
