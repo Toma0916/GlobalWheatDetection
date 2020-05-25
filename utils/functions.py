@@ -242,17 +242,17 @@ def random_box(h, w, l):
 
 
 def calc_box_overlap(boxes, box):
-        start_x = boxes[:, 0]
-        start_y = boxes[:, 1]
-        end_x = boxes[:, 2]
-        end_y = boxes[:, 3]
-        area = (end_x - start_x + 1) * (end_y - start_y + 1)
-        x1 = np.maximum(box[0], start_x)
-        x2 = np.minimum(box[2], end_x)
-        y1 = np.maximum(box[1], start_y)
-        y2 = np.minimum(box[3], end_y)
-        w = np.maximum(0.0, x2 - x1 + 1)
-        h = np.maximum(0.0, y2 - y1 + 1)
-        intersection = w * h
-        ratio = intersection/area
-        return ratio
+    start_x = boxes[:, 0]
+    start_y = boxes[:, 1]
+    end_x = boxes[:, 2]
+    end_y = boxes[:, 3]
+    area = (end_x - start_x + 1) * (end_y - start_y + 1)
+    x1 = np.maximum(box[0], start_x)
+    x2 = np.minimum(box[2], end_x)
+    y1 = np.maximum(box[1], start_y)
+    y2 = np.minimum(box[3], end_y)
+    w = np.maximum(0.0, x2 - x1 + 1)
+    h = np.maximum(0.0, y2 - y1 + 1)
+    intersection = w * h
+    ratio = intersection/area
+    return ratio

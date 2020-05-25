@@ -170,47 +170,15 @@ def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
     cut_box = np.array([bbx1, bby1, bbx2, bby2])
     
     source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
-    image[bbx1:bbx2, bby1:bby2] = source[0][bbx1:bbx2, bby1:bby2]
-
-
-
-    # org_keep_idx = np.where(calc_box_overlap(target['boxes'], cut_box) < keep_threshold)
-    # org_box1 = np.array([0, 0, image.shape[1], bby1])
-    # org_box2 = np.array([0, bby2, image.shape[1], image.shape[2]])
-    # org_box3 = np.array([0, 0, bbx1, image.shape[2]])
-    # org_box4 = np.array([bbx2, 0, image.shape[1], image.shape[2]])
+    
+    image[bby1:bby2, bbx1:bbx2] = source[0][bby1:bby2, bbx1:bbx2]
 
     src_boxes = source[1]['boxes']
+    org_keep_idx = np.where(calc_box_overlap(target['boxes'], cut_box) < keep_threshold)[0]
+    src_keep_idx = np.where(calc_box_overlap(src_boxes, cut_box) >(1.0 - keep_threshold))[0]
 
-    # print(calc_box_overlap(src_boxes, org_box1))
-
-
-    # src_keep_idx1 = np.where(calc_box_overlap(src_boxes, org_box1) < keep_threshold)[0]
-    # src_keep_idx2 = np.where(calc_box_overlap(src_boxes, org_box2) < keep_threshold)[0]
-    # src_keep_idx3 = np.where(calc_box_overlap(src_boxes, org_box3) < keep_threshold)[0]
-    # src_keep_idx4 = np.where(calc_box_overlap(src_boxes, org_box4) < keep_threshold)[0]
-
+    boxes = np.concatenate([target['boxes'][org_keep_idx, :], src_boxes[src_keep_idx, :]], axis=0)
     
-
-    # print(src_keep_idx)
-
-    
-    boxes = target['boxes']
-    # start_x = boxes[:, 0]
-    # start_y = boxes[:, 1]
-    # end_x = boxes[:, 2]
-    # end_y = boxes[:, 3]
-    # k1 = np.where(start_x < bbx1)
-    # k2 = np.where(start_y < bby1)
-    # k3 = np.where(end_x < bbx2)
-    # k4 = np.where(end_y < bby2)
-    # src_keep_idx = np.intersect1d(k1, k2)
-    # src_keep_idx = np.intersect1d(src_keep_idx, k3)
-    # src_keep_idx = np.intersect1d(src_keep_idx, k4)
-    # boxes = target['boxes'][src_keep_idx]
-
-
-
     area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
     area = torch.as_tensor(area, dtype=torch.float32)
     labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
@@ -227,7 +195,7 @@ def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
         return image, target
 
 
-def mixup(image, target, image_id, dataset, alpha=0.5):
+def mixup(image, target, image_id, dataset, alpha=2.0):
     l = np.random.beta(alpha, alpha)
     source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
     
