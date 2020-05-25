@@ -45,7 +45,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 
 
 
-def moisac(image_list, target_list, image_id_list):
+def tile4(image_list, target_list, image_id_list):
 
     s = 1024
     h = 1024
@@ -113,6 +113,48 @@ def moisac(image_list, target_list, image_id_list):
         return image_list[0], target_list[0], image_id_list[0]
 
     
+
+def mosaic(image, target, image_id, dataset):
+
+    additional_image = 3
+
+    # get other datas from dataset (for mosaic)
+    mosaic_image_sources = [dataset.get_example(i) for i in np.random.choice(np.arange(len(dataset.image_ids)), additional_image, replace=False)]
+
+    source_image_list = [image for _ in range(4 - additional_image)] 
+    source_target_list = [target for _ in range(4 - additional_image)] 
+    source_image_id_list = [image_id for _ in range(4 - additional_image)] 
+    for source in mosaic_image_sources:
+        source_image_list.append(source[0])
+        source_target_list.append(source[1])
+        source_image_id_list.append(source[2])
+    
+    # shulle source
+    image_list = []
+    target_list = []
+    image_id_list = []
+    for i in np.random.permutation(np.arange(4)):
+        image_list.append(source_image_list[i])
+        target_list.append(source_target_list[i])
+        image_id_list.append(source_image_id_list[i])
+
+    # apply mosaic
+    image, boxes, image_id = tile4(image_list, target_list, image_id_list)
+
+    # recalculate area and label and iscrowed
+    area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
+    area = torch.as_tensor(area, dtype=torch.float32)
+    labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
+    iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+
+    target['boxes'] = boxes
+    target['labels'] = labels
+    # target['image_id'] = torch.tensor([image_id])  # use base image image_id (concat image_id raise length is too long error)
+    target['area'] = area
+    target['iscrowd'] = iscrowd
+
+    return image, target
+
 
 
 class Transform:
@@ -191,33 +233,8 @@ class Transform:
 
         # mosaic
         if np.random.rand() < self.mosaic['p']:
-
-            # get other datas from dataset (for mosaic)
-            mosaic_image_sources = [dataset.get_example(i) for i in np.random.choice(np.arange(len(dataset.image_ids)), 3, replace=False)]
-
-            image_list = [image]
-            target_list = [target]
-            image_id_list = [image_id]
-            for source in mosaic_image_sources:
-                image_list.append(source[0])
-                target_list.append(source[1])
-                image_id_list.append(source[2])
+            image, target = mosaic(image, target, image_id, dataset)
             
-            # apply mosaic
-            image, boxes, image_id = moisac(image_list, target_list, image_id_list)
-
-            # recalculate area and label and iscrowed
-            area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
-            area = torch.as_tensor(area, dtype=torch.float32)
-            labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
-            iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
-
-            target['boxes'] = boxes
-            target['labels'] = labels
-            # target['image_id'] = torch.tensor([image_id])  # use base image image_id (concat image_id raise length is too long error)
-            target['area'] = area
-            target['iscrowd'] = iscrowd
-
 
         # for albumentation transforms
         sample = {
