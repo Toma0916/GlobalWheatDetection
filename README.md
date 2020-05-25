@@ -59,6 +59,8 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - GaussNoise (gauss_noise)
   - Cutout (cutout)
   - Mosaic (mosaic)
+  - CutMix (cutmix)
+  - MixUp (mixup)
 
 - post processing
   - filtering by confidence score
