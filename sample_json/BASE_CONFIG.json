@@ -164,10 +164,10 @@
                 "p": 0.0
             },
             "cutmix": {
-                "p": 1.0
+                "p": 0.0
             },
             "mixup": {
-                "p": 1.0
+                "p": 0.0
             },
             "test_time_augment": [
                 false,
