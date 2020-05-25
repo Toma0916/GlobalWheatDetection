@@ -184,16 +184,21 @@ class ImageStorage():
 
 class Logger:
 
-    def __init__(self, model, optimizer, output_dir, trained_epoch, config):
+    def __init__(self, model, optimizer, run_name, output_dir, trained_epoch, config, fold):
 
         self.model = model 
         self.optimizer = optimizer
+        self.run_name = run_name
         self.trained_epoch = trained_epoch
         self.trained_epoch_this_run = 0
         self.model_save_interval = config['general']['model_save_interval']
         self.valid_image_save_interval = config['general']['valid_image_save_interval']
         self.experiment_name = config['general']['experiment_name']
         self.save_dir = output_dir
+        if config['general']['kfold'] < 0:
+            self.config_path = str(self.save_dir/"config.json") 
+        else:
+            self.config_path = str(self.save_dir.parent/"config.json") 
 
         self.train_loss_epoch_history = LossAverager()
         self.valid_loss_epoch_history = LossAverager()
@@ -203,6 +208,8 @@ class Logger:
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.mode = 'train'
 
+        self.fold = fold
+
         self.initialize_mlflow(config)
 
 
@@ -211,9 +218,12 @@ class Logger:
         if not bool(mlflow.get_experiment_by_name(self.experiment_name)):
             mlflow.create_experiment(self.experiment_name, artifact_location=None)
         mlflow.set_experiment(self.experiment_name)
-        mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
+        run_name = self.run_name if (config['general']['kfold'] < 0) else (self.run_name + '/fold_%d' % self.fold)
+
+        mlflow.start_run(run_name=run_name)
+
         mlflow.log_params(params_to_mlflow_format(config))
-        mlflow.log_artifact(str(self.save_dir/"config.json"))
+        mlflow.log_artifact(self.config_path)
 
     def finish_training(self):
         self.writer.close()

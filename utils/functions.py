@@ -165,8 +165,13 @@ def params_to_mlflow_format(d, base_config_path='./sample_json/BASE_CONFIG.json'
     return dict_flatten(d, d_base)
 
 def randomname(n):
-   randlst = [random.choice(string.ascii_letters + string.digits) for i in range(n)]
-   return ''.join(randlst)
+
+    now = str(int(time.time()))
+    name = ''
+    for i in range(n):
+        name += now[len(now)-1-i]
+
+    return name
 
 
 def func(d_base, d):
