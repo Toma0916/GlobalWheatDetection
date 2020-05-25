@@ -199,7 +199,7 @@ if __name__ == '__main__':
     OUTPUT_DIR = Path('.').resolve()/'output'/config['general']['output_dirname']
     RUN_NAME = config['general']['experiment_name'] + '/' + randomname(5)
 
-    print('Run Name: %d' % RUN_NAME)
+    print('Run Name: ', RUN_NAME)
 
     if OUTPUT_DIR.name == 'sample' and os.path.exists(OUTPUT_DIR):
         print("'output/sample' is be overwritten.")
