@@ -14,7 +14,8 @@
         "train_valid_split": {
             "name": ["random", "train_valid_split"],
             "config": {}
-        }
+        },
+        "kfold": [-1, "kfold"]
     },
     "model": {
         "prefix": "md",

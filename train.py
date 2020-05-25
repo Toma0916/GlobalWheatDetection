@@ -82,7 +82,7 @@ def exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, t
     scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
     # log setting
-    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, config=config)
+    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, config=config, fold=fold+1)
     
     # training
     for epoch in range(trained_epoch+1, config['train']['epochs']+1):
@@ -229,11 +229,18 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(random_seed) 
     
     train_and_valid_ids_list = train_valid_split(DATAFRAME, config)
+    # execute training
+    # iterate if k-fold
     for fold, (train_ids, valid_ids) in enumerate(train_and_valid_ids_list):
         train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
         valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
         train_data_loader, valid_data_loader = get_loader(train_dataframe, valid_dataframe, config)
 
-        OUTPUT_DIR = OUTPUT_DIR if config['general']['kfold'] < 0 else OUTPUT_DIR/'fold_{0}'.format(fold+1)
+        OUTPUT_DIR_FOLDED = OUTPUT_DIR if config['general']['kfold'] < 0 else OUTPUT_DIR/'fold_{0}'.format(fold+1)
 
-        exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, trained_epoch=0)
+        exec_train(copy.deepcopy(config), 
+                   train_data_loader, 
+                   valid_data_loader, 
+                   OUTPUT_DIR_FOLDED, 
+                   fold, 
+                   trained_epoch=0)

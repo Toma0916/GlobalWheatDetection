@@ -18,7 +18,8 @@
                     "inrae_1"
                 ]
             }
-        }
+        },
+        "kfold": 5
     },
     "model": {
         "name": "faster_rcnn",
@@ -32,7 +33,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 10,
+        "epochs": 2,
         "random_annotation": {
             "drop": {
                 "p": 0.0

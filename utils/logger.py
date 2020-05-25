@@ -184,7 +184,7 @@ class ImageStorage():
 
 class Logger:
 
-    def __init__(self, model, optimizer, output_dir, trained_epoch, config):
+    def __init__(self, model, optimizer, output_dir, trained_epoch, config, fold):
 
         self.model = model 
         self.optimizer = optimizer
@@ -207,6 +207,8 @@ class Logger:
         self.writer = SummaryWriter(log_dir=str(self.save_dir))
         self.mode = 'train'
 
+        self.fold = fold
+
         self.initialize_mlflow(config)
 
 
@@ -216,6 +218,9 @@ class Logger:
             mlflow.create_experiment(self.experiment_name, artifact_location=None)
         mlflow.set_experiment(self.experiment_name)
         mlflow.start_run(run_name='%s_%s' % (self.experiment_name, randomname(4)))
+
+        if config['general']['kfold'] >= 0:
+            config['general']['experiment_name'] = config['general']['experiment_name'] + "/fold_{0}".format(self.fold)
         mlflow.log_params(params_to_mlflow_format(config))
         mlflow.log_artifact(self.config_path)
 
