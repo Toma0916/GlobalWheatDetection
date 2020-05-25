@@ -61,7 +61,7 @@ from scheduler import get_scheduler
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.logger import Logger
-from utils.functions import convert_dataframe, format_config_by_baseconfig
+from utils.functions import convert_dataframe, format_config_by_baseconfig, randomname
 from utils.metric import calculate_score_for_each
 from utils.postprocess import postprocessing
 from utils.sampler import get_sampler
@@ -82,7 +82,7 @@ def exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, t
     scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
     # log setting
-    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, trained_epoch=trained_epoch, config=config, fold=fold+1)
+    logger = Logger(model, optimizer, output_dir=OUTPUT_DIR, run_name=RUN_NAME, trained_epoch=trained_epoch, config=config, fold=fold+1)
     
     # training
     for epoch in range(trained_epoch+1, config['train']['epochs']+1):
@@ -197,6 +197,9 @@ if __name__ == '__main__':
     TEST_IMAGE_DIR= SRC_DIR/'test'
     DATAFRAME = convert_dataframe(pd.read_csv(str(SRC_DIR/'train.csv')))
     OUTPUT_DIR = Path('.').resolve()/'output'/config['general']['output_dirname']
+    RUN_NAME = config['general']['experiment_name'] + '/' + randomname(5)
+
+    print('Run Name: %d' % RUN_NAME)
 
     if OUTPUT_DIR.name == 'sample' and os.path.exists(OUTPUT_DIR):
         print("'output/sample' is be overwritten.")
