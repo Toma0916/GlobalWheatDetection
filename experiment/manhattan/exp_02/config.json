@@ -1,0 +1,72 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "manhattan/exp_00",
+        "experiment_name": "manhattan",
+        "seed": 42,
+        "model_save_interval": 5,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 100000,
+            "min_bbox_size": 100
+        }
+    },
+    "model": {
+        "name": "efficient_det", 
+        "config": {
+            "pretrained_path": "/home/minoda/git/GlobalWheatDetection/weights/effdet/efficientdet_d5-ef44aea8.pth",
+            "image_size": 512
+        }
+    },
+    "train": {
+        "batch_size": 8,
+        "epochs": 51,
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "betas": {
+                    "tuple": {
+                        "b1": 0.5,
+                        "b2": 0.999
+                    }
+                },
+                "eps": 1e-8
+            }
+        },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
+            }
+        },
+        "augment": {
+            "mosaic": {
+                "p": 0.5
+            }, 
+            "cutmix": {
+                "p": 0.5
+            },
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 0.5
+            },
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.2
+        },
+        "post_processor": {
+            "name": "soft-nms",
+            "config": {
+                "sigma": 0.1
+            }
+        }
+    }
+}
