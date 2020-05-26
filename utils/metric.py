@@ -100,25 +100,6 @@ def find_best_match(gts, pred, pred_idx, threshold = 0.5, form = 'pascal_voc', i
 
 
 @jit(nopython=True)
-def np_delete_workaround(arr, idx: int):
-    """Deletes element by index from a ndarray.
-
-    Numba does not handle np.delete, so this workaround
-    needed for the fast MAP calculation.
-
-    Args:
-        arr: (np.ndarray) numpy array
-        idx: (int) index of the element to remove
-
-    Returns:
-        (np.ndarray) New array
-    """
-    mask = np.zeros(arr.shape[0], dtype=np.int64) == 0
-    mask[idx] = False
-
-    return arr[mask]
-
-@jit(nopython=True)
 def calculate_precision(gts, preds, threshold = 0.5, form = 'coco', ious=None) -> float:
     """Calculates precision for GT - prediction pairs at one threshold.
 
