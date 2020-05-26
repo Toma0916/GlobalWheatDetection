@@ -182,8 +182,8 @@ def calculate_score_for_each(outputs, targets):
     
     image_precisions = np.zeros((len(outputs), len(iou_thresholds)))
     for i in range(len(outputs)):
-        preds = xyxy2xywh(outputs[i]['boxes'])
-        gt_boxes = xyxy2xywh(targets[i]['boxes'].cpu().detach().numpy())
+        preds = xyxy2xywh(outputs[i]['boxes'].copy())
+        gt_boxes = xyxy2xywh(targets[i]['boxes'].cpu().detach().numpy().copy())
         image_precision = calculate_image_precision(preds,
                                                     gt_boxes,
                                                     thresholds=iou_thresholds,
