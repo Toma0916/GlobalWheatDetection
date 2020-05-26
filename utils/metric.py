@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from numba import jit
 from typing import List, Union, Tuple
 
-from utils.functions import detach_outputs
+from utils.functions import detach_outputs, xyxy2xywh
 
 
 @jit(nopython=True)
@@ -78,6 +78,9 @@ def find_best_match(gts, pred, pred_idx, threshold = 0.5, form = 'pascal_voc', i
     best_match_idx = -1
 
     for gt_idx in range(len(gts)):
+        if gts[gt_idx][0] < 0:
+            # Already matched GT-box
+            continue
         iou = -1 if ious is None else ious[gt_idx][pred_idx]
 
         if iou < 0:
@@ -95,25 +98,6 @@ def find_best_match(gts, pred, pred_idx, threshold = 0.5, form = 'pascal_voc', i
 
     return best_match_idx
 
-
-@jit(nopython=True)
-def np_delete_workaround(arr, idx: int):
-    """Deletes element by index from a ndarray.
-
-    Numba does not handle np.delete, so this workaround
-    needed for the fast MAP calculation.
-
-    Args:
-        arr: (np.ndarray) numpy array
-        idx: (int) index of the element to remove
-
-    Returns:
-        (np.ndarray) New array
-    """
-    mask = np.zeros(arr.shape[0], dtype=np.int64) == 0
-    mask[idx] = False
-
-    return arr[mask]
 
 @jit(nopython=True)
 def calculate_precision(gts, preds, threshold = 0.5, form = 'coco', ious=None) -> float:
@@ -144,7 +128,7 @@ def calculate_precision(gts, preds, threshold = 0.5, form = 'coco', ious=None) -
             # True positive: The predicted box matches a gt box with an IoU above the threshold.
             tp += 1
             # Remove the matched GT box
-            gts = np_delete_workaround(gts, best_match_gt_idx)
+            gts[best_match_gt_idx] = -1
 
         else:
             # No match
@@ -152,7 +136,7 @@ def calculate_precision(gts, preds, threshold = 0.5, form = 'coco', ious=None) -
             fp += 1
 
     # False negative: indicates a gt box had no associated predicted box.
-    fn = len(gts)
+    fn = (gts.sum(axis=1) > 0).sum()
 
     return tp / (tp + fp + fn)
 
@@ -172,15 +156,16 @@ def calculate_image_precision(gts, preds, thresholds = (0.5, ), form = 'coco') -
         (float) Precision
     """
     n_threshold = len(thresholds)
-    ious = np.ones((len(gts), len(preds))) * -1
 
-    precision_each_iou = []
+    ious = np.ones((len(gts), len(preds))) * -1
+    # ious = None
+    image_precision = []
     for threshold in thresholds:
-        precision_at_threshold = calculate_precision(gts, preds, threshold=threshold,
+        precision_at_threshold = calculate_precision(gts.copy(), preds, threshold=threshold,
                                                      form=form, ious=ious)
-        precision_each_iou.append(precision_at_threshold)
-    
-    return precision_each_iou
+        image_precision.append(precision_at_threshold)
+
+    return image_precision
 
 
 
@@ -194,13 +179,15 @@ def calculate_score_for_each(outputs, targets):
     iou_thresholds = numba.typed.List()
     for x in [0.5, 0.55, 0.6, 0.65, 0.70, 0.75]:
         iou_thresholds.append(x)
+    
     image_precisions = np.zeros((len(outputs), len(iou_thresholds)))
     for i in range(len(outputs)):
-        image_precision = calculate_image_precision(outputs[i]['boxes'],
-                                                    targets[i]['boxes'].cpu().detach().numpy(),
+        preds = xyxy2xywh(outputs[i]['boxes'])
+        gt_boxes = xyxy2xywh(targets[i]['boxes'].cpu().detach().numpy())
+        image_precision = calculate_image_precision(preds,
+                                                    gt_boxes,
                                                     thresholds=iou_thresholds,
-                                                    form='pascal_voc')
+                                                    form='coco')
         image_precisions[i, :] = image_precision
-                
     return np.mean(image_precisions, axis=0)
         
