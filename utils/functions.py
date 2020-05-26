@@ -170,7 +170,7 @@ def randomname(n):
     name = ''
     for i in range(n):
         name += now[len(now)-1-i]
-
+    
     return name
 
 
@@ -211,7 +211,9 @@ def detach_outputs(outputs):
     return outputs
 
 def xyxy2xywh(boxes):
-    return 0
+    boxes[:, 2] = boxes[:, 0] + boxes[:, 2]
+    boxes[:, 3] = boxes[:, 1] + boxes[:, 3]
+    return boxes
 
 def xywh2xyxy(boxes):
     boxes[:, 2] = boxes[:, 2] + boxes[:, 0]
