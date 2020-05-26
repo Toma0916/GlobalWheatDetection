@@ -96,32 +96,40 @@ class MetricAverager:
             'original': np.zeros(len(self.iou_thresholds)),
             'processed': np.zeros(len(self.iou_thresholds))
         }
-        self.iterations = 0.0
+        self.original_iterations = 0.0
+        self.processed_iterations = 0.0
 
     def send(self, values, type):
         self.current_total[type] += values
-        self.iterations += 1
-
+        if type == 'original':
+            self.original_iterations += 1.0
+        else:
+            self.processed_iterations += 1.0
+ 
     @property
     def value(self):
-        if self.iterations == 0:
-            return {
-                'original': 0,
-                'processed': 0
-            }
+
+        metric_dicts = {}
+
+        if self.original_iterations == 0.0:
+            metric_dicts['original'] = 0.0
         else:
-            return {
-                'original': 1.0 * self.current_total['original'] / self.iterations,
-                'processed': 1.0 * self.current_total['processed'] / self.iterations
-            }
-            
+            metric_dicts['original'] =  1.0 * self.current_total['original'] / self.original_iterations
+        
+        if self.processed_iterations == 0.0:
+            metric_dicts['processed'] = 0.0
+        else:
+            metric_dicts['processed'] = 1.0 * self.current_total['processed'] / self.processed_iterations
+        
+        return metric_dicts
 
     def reset(self):
         self.current_total = {
             'original': np.zeros(len(self.iou_thresholds)),
             'processed': np.zeros(len(self.iou_thresholds))
         }
-        self.iterations = 0.0
+        self.original_iterations = 0.0
+        self.processed_iterations = 0.0
 
 
 class ImageStorage():
