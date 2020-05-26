@@ -1,0 +1,15 @@
+artifact_uri: ./mlruns/2/97cebaf4dd1a40069a6272e16197ed75/artifacts
+end_time: 1590478152372
+entry_point_name: ''
+experiment_id: '2'
+lifecycle_stage: deleted
+name: ''
+run_id: 97cebaf4dd1a40069a6272e16197ed75
+run_uuid: 97cebaf4dd1a40069a6272e16197ed75
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1590478149497
+status: 3
+tags: []
+user_id: minoda
