@@ -103,7 +103,6 @@ def train_epoch(model, train_data_loader, logger, optimizer):
     model.train()
     logger.start_train_epoch()
     for images, targets, image_ids in tqdm.tqdm(train_data_loader):
-
         # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
         targets_copied = copy.deepcopy(targets)
         target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
@@ -131,7 +130,6 @@ def evaluate_epoch(model, valid_data_loader, logger, optimizer):
             preds, loss_dict = model(images, targets)
             loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
             logger.send_loss(loss_dict_detach) 
-
             original_metric_scores = calculate_score_for_each(preds, targets_copied)
             processed_outputs = postprocessing(copy.deepcopy(preds), config["valid"]) if 'valid' in config.keys() else outputs
             processed_metric_scores = calculate_score_for_each(processed_outputs, targets_copied)
