@@ -156,7 +156,6 @@ def calculate_image_precision(gts, preds, thresholds = (0.5, ), form = 'coco') -
         (float) Precision
     """
     n_threshold = len(thresholds)
-    image_precision = 0.0
 
     ious = np.ones((len(gts), len(preds))) * -1
     # ious = None
