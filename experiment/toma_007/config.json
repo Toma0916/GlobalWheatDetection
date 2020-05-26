@@ -1,5 +1,5 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
         "output_dirname": "manhattan/exp_11",
         "experiment_name": "manhattan",
