@@ -1,7 +1,3 @@
 # Memo
 ## 00 (baseline)
 - めっちゃ過学習している
-
-## 10 (間違えたやつ）manhattan/90794
-- ベーシックなaugmentを入れ忘れた
-- スコアはベースラインより低いけど、lossはvalとtrainでいい感じ
