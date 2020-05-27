@@ -299,6 +299,9 @@ def poly_scheduler(optimizer, power=0.9, max_epoch=4e4, last_epoch=-1):
 def warmup_cosine_annealing_restarts_scheduler(optimizer, T_0, T_mult=1, eta_max=0.1, T_up=0, gamma=1., last_epoch=-1):
     return CosineAnnealingWarmUpRestarts(optimizer, T_0, T_mult, eta_max, T_up, gamma, last_epoch)
 
+def reduce_lr_on_plateau(optimizer, mode='min', factor=0.1, patience=10, verbose=False, threshold=0.0001, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08):
+    return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode, factor, patience, verbose, threshold, threshold_mode, cooldown, min_lr, eps)
+
 def get_scheduler(config, optimizer):
 
     if config['name'] == '':
@@ -313,7 +316,8 @@ def get_scheduler(config, optimizer):
         'WarmupCosineAnnealing': warmup_cosine_annealing_scheduler,
         'PiecewiseCyclicalLinear': piecewise_cyclical_linear_scheduler,
         'Poly': poly_scheduler,
-        'WarmupCosineAnnealingRestarts': warmup_cosine_annealing_restarts_scheduler
+        'WarmupCosineAnnealingRestarts': warmup_cosine_annealing_restarts_scheduler,
+        'ReduceLROnPlateau': reduce_lr_on_plateau
     }
 
     assert config['name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))

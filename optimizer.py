@@ -57,6 +57,7 @@ def get_optimizer(config, parameters):
 
     optimizer_list = {
         'adam': torch.optim.Adam,
+        'adamw': torch.optim.AdamW,
         'sgd': torch.optim.SGD
     }
     
