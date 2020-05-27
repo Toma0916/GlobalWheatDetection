@@ -1,5 +1,5 @@
 artifact_uri: ./mlruns/2/54713f4b63f84abb8614801a8609706e/artifacts
-end_time: null
+end_time: 1590546204703
 entry_point_name: ''
 experiment_id: '2'
 lifecycle_stage: active
@@ -10,6 +10,6 @@ source_name: ''
 source_type: 4
 source_version: ''
 start_time: 1590488917651
-status: 1
+status: 3
 tags: []
 user_id: minoda
