@@ -1,0 +1,15 @@
+artifact_uri: ./mlruns/2/674bc52f40a74086bf421429508c5c92/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '2'
+lifecycle_stage: active
+name: ''
+run_id: 674bc52f40a74086bf421429508c5c92
+run_uuid: 674bc52f40a74086bf421429508c5c92
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1590629391740
+status: 1
+tags: []
+user_id: toma
