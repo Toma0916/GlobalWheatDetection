@@ -4,31 +4,22 @@
         "output_dirname": "sample",
         "experiment_name": "sample",
         "seed": 99,
-        "model_save_interval": 50,
+        "model_save_interval": 10,
         "valid_image_save_interval": 3,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 90
-        },
-        "train_valid_split": {
-            "name": "source",
-            "config": {
-                "valid_sources": [
-                    "ethz_1",
-                    "inrae_1"
-                ]
-            }
         }
     },
     "model": {
         "name": "efficient_det",
         "config": {
             "pretrained_path": "./weights/effdet/efficientdet_d5-ef44aea8.pth",
-            "image_size": 256
+            "image_size": 512
         }
     },
     "train": {
-        "batch_size": 1,
+        "batch_size": 2,
         "epochs": 50,
         "random_annotation": {
             "drop": {
@@ -38,31 +29,24 @@
                 "max_ratio": 0.0
             }
         },
-        "sampler": {
-            "name": "balance_sources",
-            "config": {
-                "strength": 1000
-            }
-        },
         "optimizer": {
-            "name": "adam",
+            "name": "adamw",
             "config": {
-                "lr": 0.0001,
-                "betas": {
-                    "tuple": {
-                        "b1": 0.5,
-                        "b2": 0.999
-                    }
-                },
-                "eps": 1e-8
+                "lr": 0.0002
             }
         },
         "scheduler": {
-            "name": "Step",
+            "name": "ReduceLROnPlateau",
             "config": {
-                "step_size": 10,
-                "gamma": 0.5,
-                "last_epoch": -1
+                "mode": "min",
+                "factor": 0.5,
+                "patience": 1,
+                "verbose": false,
+                "threshold": 0.0001,
+                "threshold_mode": "abs",
+                "cooldown": 0,
+                "min_lr": 1e-8,
+                "eps": 1e-08
             }
         },
         "augment": {
@@ -75,9 +59,9 @@
             "min_confidence": 0.2
         },
         "post_processor": {
-            "name": "nms",
+            "name": "wbf",
             "config": {
-                "threshold": 0.2
+                "threshold": 0.6
             }
         }
     }
