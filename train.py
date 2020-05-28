@@ -94,7 +94,7 @@ def exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, t
         train_epoch(model, train_data_loader, logger, optimizer)
         evaluate_epoch(model, valid_data_loader, logger, optimizer)
         if scheduler is not None:
-            scheduler.step()
+            scheduler.step(logger.last_valid_loss)
     
     logger.finish_training()
 
@@ -114,7 +114,6 @@ def train_epoch(model, train_data_loader, logger, optimizer):
         loss_dict_detach = {k: v.cpu().detach().numpy() for k, v in loss_dict.items()}
         logger.send_loss(loss_dict_detach)
     logger.send_images(images, image_ids, target_boxes, None)
-    print(logger.train_loss_epoch_history.value)
     logger.end_train_epoch()
 
 

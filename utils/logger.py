@@ -218,6 +218,9 @@ class Logger:
 
         self.fold = fold
 
+        self.last_train_loss = -1
+        self.last_valid_loss = -1
+
         self.initialize_mlflow(config)
 
 
@@ -248,6 +251,7 @@ class Logger:
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
 
     def end_train_epoch(self):
+        self.last_train_loss = self.train_loss_epoch_history.value['loss']
         for key, value in self.train_loss_epoch_history.value.items():
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
             mlflow.log_metrics({'tr_%s' % (key.replace('loss', 'ls')) : value})
@@ -272,7 +276,7 @@ class Logger:
 
 
     def end_valid_epoch(self):
-
+        self.last_valid_loss = self.valid_loss_epoch_history.value['loss']
         for key, value in self.valid_loss_epoch_history.value.items():
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)    
             mlflow.log_metrics({'val_%s' % (key.replace('loss', 'ls')) : value})
