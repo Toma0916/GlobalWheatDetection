@@ -1,0 +1,93 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "manhattan/exp_21",
+        "experiment_name": "manhattan",
+        "seed": 42,
+        "model_save_interval": 25,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        }
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet101",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
+            "class_num": 2,
+            "pretrained": true
+        }
+    },
+    "train": {
+        "batch_size": 2,
+        "epochs": 51,
+        "random_annotation": {
+            "drop": {
+                "p": 0.005
+            },
+            "vibration": {
+                "max_ratio": 0.1
+            }
+        },
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "betas": {
+                    "tuple": {
+                        "b1": 0.5,
+                        "b2": 0.999
+                    }
+                },
+                "eps": 1e-8
+            }
+        },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.5,
+                "last_epoch": -1
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5
+            },
+            "cutmix": {
+                "P": 0.5
+            },
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.1
+        },
+        "post_processor": {
+            "name": "soft_nms",
+            "config": {
+                "sigma": 0.3
+            }
+        }
+    }
+}
