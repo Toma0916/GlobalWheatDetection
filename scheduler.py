@@ -326,7 +326,6 @@ class CustomScheduler:
             self.scheduler.step(metrics=metrics)
         else:
             self.scheduler.step()
-
 def get_scheduler(config, optimizer):
 
     if config['name'] == '':

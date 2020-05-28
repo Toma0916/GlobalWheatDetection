@@ -19,8 +19,8 @@
         }
     },
     "train": {
-        "batch_size": 4,
-        "epochs": 100,
+        "batch_size": 2,
+        "epochs": 50,
         "random_annotation": {
             "drop": {
                 "p": 0.0
