@@ -232,8 +232,8 @@ class CustomCutout(DualTransform):
         self,
         fill_value=0,
         bbox_removal_threshold=0.50,
-        min_cutout_size=192,
-        max_cutout_size=512,
+        min_cutout_size=60,
+        max_cutout_size=70,
         always_apply=False,
         p=0.5
     ):
