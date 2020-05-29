@@ -302,25 +302,36 @@ def warmup_cosine_annealing_restarts_scheduler(optimizer, T_0, T_mult=1, eta_max
 def reduce_lr_on_plateau(optimizer, mode='min', factor=0.1, patience=10, verbose=False, threshold=0.0001, threshold_mode='rel', cooldown=0, min_lr=0, eps=1e-08):
     return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode, factor, patience, verbose, threshold, threshold_mode, cooldown, min_lr, eps)
 
+class CustomScheduler:
+    def __init__(self, optimizer, config):
+        scheduler_list = {
+            'Step': step_scheduler,
+            'MultiStep': mulitstep_scheduler,
+            'Exponential': exponential_scheduler,
+            'CosineAnnealing': cosine_annealing_scheduler,
+            'WarmupMultiStep': warmup_multistep,
+            'WarmupCosineAnnealing': warmup_cosine_annealing_scheduler,
+            'PiecewiseCyclicalLinear': piecewise_cyclical_linear_scheduler,
+            'Poly': poly_scheduler,
+            'WarmupCosineAnnealingRestarts': warmup_cosine_annealing_restarts_scheduler,
+            'ReduceLROnPlateau': reduce_lr_on_plateau
+        }
+
+        assert config['name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
+        self.scheduler_name = config['name']
+        self.scheduler = scheduler_list[config['name']](optimizer, **config['config'])
+
+    def step(self, metrics):
+        if self.scheduler_name == 'ReduceLROnPlateau':
+            self.scheduler.step(metrics=metrics)
+        else:
+            self.scheduler.step()
+
+            
 def get_scheduler(config, optimizer):
 
     if config['name'] == '':
         return None
 
-    scheduler_list = {
-        'Step': step_scheduler,
-        'MultiStep': mulitstep_scheduler,
-        'Exponential': exponential_scheduler,
-        'CosineAnnealing': cosine_annealing_scheduler,
-        'WarmupMultiStep': warmup_multistep,
-        'WarmupCosineAnnealing': warmup_cosine_annealing_scheduler,
-        'PiecewiseCyclicalLinear': piecewise_cyclical_linear_scheduler,
-        'Poly': poly_scheduler,
-        'WarmupCosineAnnealingRestarts': warmup_cosine_annealing_restarts_scheduler,
-        'ReduceLROnPlateau': reduce_lr_on_plateau
-    }
-
-    assert config['name'] in scheduler_list.keys(), 'Scheduler\'s name is not valid. Available schedulers: %s' % str(list(scheduler_list.keys()))
-
-    scheduler = scheduler_list[config['name']](optimizer, **config['config'])
+    scheduler = CustomScheduler(optimizer, config)
     return scheduler 

@@ -94,7 +94,7 @@ def exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, t
         train_epoch(model, train_data_loader, logger, optimizer)
         evaluate_epoch(model, valid_data_loader, logger, optimizer)
         if scheduler is not None:
-            scheduler.step()
+            scheduler.step(logger.last_valid_loss)
     
     logger.finish_training()
 

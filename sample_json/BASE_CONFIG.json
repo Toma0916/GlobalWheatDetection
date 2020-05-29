@@ -161,6 +161,9 @@
             "cutout": {
                 "p": 0.0
             },
+            "custom_cutout": {
+                "p": 0.0
+            },
             "mosaic": {
                 "p": 0.0
             },

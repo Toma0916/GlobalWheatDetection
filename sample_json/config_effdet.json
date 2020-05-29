@@ -1,7 +1,7 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
-        "output_dirname": "sample",
+        "output_dirname": "sample_effdet",
         "experiment_name": "sample",
         "seed": 99,
         "model_save_interval": 10,
