@@ -454,12 +454,13 @@ class Transform:
 
         sample = albumentation_transforms(**sample)
         image = (sample['image'].type(torch.float32))/255
-        try:
-            target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
-        except RuntimeError as e:
+        if sample['bboxes'] == []:
             # If empty after transform, fill out with these values.
             target['boxes'] = torch.tensor([[0,0,0,0]], dtype=torch.float32)
             target['labels'] = torch.tensor([1], dtype=torch.int64)
             target['area'] = torch.tensor([0], dtype=torch.float32)
             target['iscrowd'] = torch.tensor([0], dtype=torch.int64)
+        else:
+            target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+
         return image, target, image_id
