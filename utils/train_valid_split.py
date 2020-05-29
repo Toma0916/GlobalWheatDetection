@@ -63,6 +63,7 @@ def debug_split_kfold(dataframe, fold_k):
 def stratify_split_kfold(dataframe, fold_k):
     return random_split_kfold(dataframe, fold_k)
 
+
 def random_split_kfold(dataframe, fold_k):
     image_source = dataframe[['image_id', 'source']].drop_duplicates()
     image_ids = image_source['image_id'].to_numpy()
