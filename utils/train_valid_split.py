@@ -22,7 +22,7 @@ def random_split(dataframe, train_rate=0.8):
 
 def stratify_split(dataframe, traine_rate=0.8):
     print("WARN in stratify_split(): This will split by train:valid=8:2.")
-    return stratify_split_kfold(dataframe, fold_k)[0]
+    return [stratify_split_kfold(dataframe, 5)[0]]
 
 def source_split(dataframe, valid_sources=['ethz_1']):
     """
