@@ -20,6 +20,9 @@ def random_split(dataframe, train_rate=0.8):
     valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
     return [(train_ids, valid_ids)]
 
+def stratify_split(dataframe, traine_rate=0.8):
+    print("WARN in stratify_split(): This will split by train:valid=8:2.")
+    return stratify_split_kfold(dataframe, fold_k)[0]
 
 def source_split(dataframe, valid_sources=['ethz_1']):
     """
@@ -57,6 +60,8 @@ def debug_split_kfold(dataframe, fold_k):
         res.append((image_ids[train_ids], image_ids[valid_ids]))
     return res
 
+def stratify_split_kfold(dataframe, fold_k):
+    return random_split_kfold(dataframe, fold_k)
 
 def random_split_kfold(dataframe, fold_k):
     image_source = dataframe[['image_id', 'source']].drop_duplicates()
@@ -102,6 +107,7 @@ def train_valid_split(dataframe, config):
         split_method_list = {
             'debug_split': debug_split,
             'random': random_split,
+            'stratify': stratify_split,
             'source': source_split
         }
         return split_method_list[split_config['name']](dataframe,  **split_config['config'])
@@ -109,6 +115,7 @@ def train_valid_split(dataframe, config):
         split_method_list = {
             'debug_split': debug_split_kfold,
             'random': random_split_kfold,
+            'stratify': stratify_split_kfold,
             'source': source_split_kfold
         }
         return split_method_list[split_config['name']](dataframe, fold_k, **split_config['config'])
