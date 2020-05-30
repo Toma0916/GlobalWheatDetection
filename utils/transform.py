@@ -339,10 +339,12 @@ class Transform:
         config = all_config['train']['augment']
         if is_train or config['test_time_augment']:
 
-            # mosaic
+            # mix and cut
             self.mosaic = config['mosaic'] if ('mosaic' in config) else {'p': 0.0}
             self.cutmix = config['cutmix'] if ('cutmix' in config) else {'p': 0.0}
             self.mixup = config['mixup'] if ('mixup' in config) else {'p': 0.0}
+            self.cutout = config['cutout'] if ('cutout' in config) else {'p': 0.0}
+            self.custom_cutout = config['custom_cutout'] if ('custom_cutout' in config) else {'p': 0.0}
 
 
             # flip系
@@ -375,12 +377,13 @@ class Transform:
             
             # noise系
             self.gauss_noise = config['gauss_noise'] if ('gauss_noise' in config) else {'p': 0.0}
-            self.cutout = config['cutout'] if ('cutout' in config) else {'p': 0.0}
-            self.custom_cutout = config['custom_cutout'] if ('custom_cutout' in config) else {'p': 0.0}
+            
 
         else:
             self.mosaic = {'p': 0.0}
             self.cutmix = {'p': 0.0}
+            self.cutout = {'p': 0.0}
+            self.custom_cutout = {'p': 0.0}
             self.mixup = {'p': 0.0}
             self.horizontal_flip = {'p': 0.0}
             self.vertical_flip = {'p': 0.0} 
@@ -401,9 +404,7 @@ class Transform:
             self.random_brightness = {'p': 0.0}
             self.random_contrast = {'p': 0.0}
             self.gauss_noise = {'p': 0.0}
-            self.cutout = {'p': 0.0}
-            self.custom_cutout = {'p': 0.0}
-
+            
 
     def __call__(self, example, dataset):
 
