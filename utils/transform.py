@@ -166,7 +166,7 @@ def mosaic(image, target, image_id, dataset, p):
 
 
 
-def cutmix(image, target, image_id, dataset, p, mix=False, alpha=0.5, keep_threshold=0.5):
+def cutmix(image, target, image_id, dataset, p, mix=False, alpha=0.5, alpha2=2.0, keep_threshold=0.5):
 
     if p < np.random.rand():
         return image, target
@@ -177,18 +177,25 @@ def cutmix(image, target, image_id, dataset, p, mix=False, alpha=0.5, keep_thres
     org_target = copy.deepcopy(target)
 
     l = np.random.beta(alpha, alpha)
+    l2 = np.random.beta(alpha2, alpha2)
     bbx1, bby1, bbx2, bby2 = random_box(image.shape[0], image.shape[1], l)
     cut_box = np.array([bbx1, bby1, bbx2, bby2])
     
     source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
     
-    image[bby1:bby2, bbx1:bbx2] = source[0][bby1:bby2, bbx1:bbx2]
+    if mix:
+        image[bby1:bby2, bbx1:bbx2] = image[bby1:bby2, bbx1:bbx2] * l2 + source[0][bby1:bby2, bbx1:bbx2] * (1 - l2)
+        src_boxes = source[1]['boxes']
+        src_keep_idx = np.where(calc_box_overlap(src_boxes, cut_box) >(1.0 - keep_threshold))[0]
+        boxes = np.concatenate([target['boxes'], src_boxes[src_keep_idx, :]], axis=0)
+    else:
+        image[bby1:bby2, bbx1:bbx2] = source[0][bby1:bby2, bbx1:bbx2]
 
-    src_boxes = source[1]['boxes']
-    org_keep_idx = np.where(calc_box_overlap(target['boxes'], cut_box) < keep_threshold)[0]
-    src_keep_idx = np.where(calc_box_overlap(src_boxes, cut_box) >(1.0 - keep_threshold))[0]
+        src_boxes = source[1]['boxes']
+        org_keep_idx = np.where(calc_box_overlap(target['boxes'], cut_box) < keep_threshold)[0]
+        src_keep_idx = np.where(calc_box_overlap(src_boxes, cut_box) >(1.0 - keep_threshold))[0]
 
-    boxes = np.concatenate([target['boxes'][org_keep_idx, :], src_boxes[src_keep_idx, :]], axis=0)
+        boxes = np.concatenate([target['boxes'][org_keep_idx, :], src_boxes[src_keep_idx, :]], axis=0)
     
     area = (boxes[:, 3] - boxes[:, 1]) * (boxes[:, 2] - boxes[:, 0])
     area = torch.as_tensor(area, dtype=torch.float32)
