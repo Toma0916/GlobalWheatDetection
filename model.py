@@ -168,8 +168,7 @@ class Model:
                 return {'loss': loss}
             else:
                 outputs, (loss, _, _) = self.model(images, boxes, labels)
-                preds = [{#'boxes': xywh2xyxy(res[:, :4])[:, [1,0,3,2]].clamp(min=0, max=self.image_size-1),
-                          'boxes': xywh2xyxy(res[:, :4]).clamp(min=0, max=self.image_size-1),
+                preds = [{'boxes': xywh2xyxy(res[:, :4]).clamp(min=0, max=self.image_size-1),
                           'labels': res[:, 5],
                           'scores': res[:, 4]} for res in outputs]
                 
