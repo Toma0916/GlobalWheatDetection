@@ -251,8 +251,9 @@ class Logger:
         self.writer.add_scalar('train/lr', learning_rate, self.trained_epoch + 1)
 
     def end_train_epoch(self):
-        self.last_train_loss = self.train_loss_epoch_history.value['loss']
-        for key, value in self.train_loss_epoch_history.value.items():
+        train_loss_epoch_history_value = self.train_loss_epoch_history.value
+        self.last_train_loss = train_loss_epoch_history_value['loss']
+        for key, value in train_loss_epoch_history_value.items():
             self.writer.add_scalar('train/%s' % key, value, self.trained_epoch + 1)
             mlflow.log_metrics({'tr_%s' % (key.replace('loss', 'ls')) : value})
         self.trained_epoch += 1
@@ -276,8 +277,9 @@ class Logger:
 
 
     def end_valid_epoch(self):
-        self.last_valid_loss = self.valid_loss_epoch_history.value['loss']
-        for key, value in self.valid_loss_epoch_history.value.items():
+        valid_loss_epoch_history_value = self.valid_loss_epoch_history.value
+        self.last_valid_loss = valid_loss_epoch_history_value['loss']
+        for key, value in valid_loss_epoch_history_value.items():
             self.writer.add_scalar('valid/%s' % key, value, self.trained_epoch)    
             mlflow.log_metrics({'val_%s' % (key.replace('loss', 'ls')) : value})
 
