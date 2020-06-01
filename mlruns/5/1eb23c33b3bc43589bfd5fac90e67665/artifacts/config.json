@@ -1,0 +1,163 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "macallan/exp_17",
+        "experiment_name": "macallan",
+        "seed": 42,
+        "model_save_interval": 25,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        },
+        "train_valid_split": {
+            "name": "source",
+            "valid_sources": [
+                "inrae_1",
+                "ethz_1"
+            ],
+            "config": {}
+        },
+        "prefix": "gn",
+        "kfold": -1
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet101",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
+            "class_num": 2,
+            "pretrained": true
+        },
+        "prefix": "md"
+    },
+    "train": {
+        "batch_size": 2,
+        "epochs": 51,
+        "random_annotation": {
+            "drop": {
+                "p": 0.005
+            },
+            "vibration": {
+                "max_ratio": 0.1
+            }
+        },
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "betas": [
+                    0.5,
+                    0.999
+                ],
+                "eps": 1e-08
+            }
+        },
+        "scheduler": {
+            "name": "Step",
+            "config": {
+                "step_size": 10,
+                "gamma": 0.5,
+                "last_epoch": -1
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5
+            },
+            "mosaic": {
+                "p": 0.5
+            },
+            "mixup": {
+                "P": 0.5,
+                "p": 0.0
+            },
+            "test_time_augment": false,
+            "prefix": "ag",
+            "blur": {
+                "p": 0.0
+            },
+            "motion_blur": {
+                "p": 0.0
+            },
+            "median_blur": {
+                "p": 0.0
+            },
+            "gaussian_blur": {
+                "p": 0.0
+            },
+            "optical_distortion": {
+                "p": 0.0
+            },
+            "grid_distortion": {
+                "p": 0.0
+            },
+            "elastic_transform": {
+                "p": 0.0
+            },
+            "clahe": {
+                "p": 0.0
+            },
+            "channel_shuffle": {
+                "p": 0.0
+            },
+            "random_gamma": {
+                "p": 0.0
+            },
+            "rgb_shift": {
+                "p": 0.0
+            },
+            "random_sized_bbox_safe_crop": {
+                "p": 0.0,
+                "height": 1024,
+                "width": 1024
+            },
+            "gauss_noise": {
+                "p": 0.0
+            },
+            "cutout": {
+                "p": 0.0
+            },
+            "custom_cutout": {
+                "p": 0.0
+            },
+            "cutmix": {
+                "p": 0.0
+            }
+        },
+        "prefix": "tr",
+        "sampler": {
+            "name": "",
+            "config": {}
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.001
+        },
+        "post_processor": {
+            "name": "soft_nms",
+            "config": {
+                "sigma": 0.1
+            }
+        },
+        "prefix": "vl"
+    }
+}
