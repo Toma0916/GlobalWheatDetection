@@ -153,8 +153,8 @@ if __name__ == '__main__':
     valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # load model and predict
-    train_predicts = defaultdict(lambda: {'boxes': np.array([]), 'scores': np.array([])})
-    valid_predicts = defaultdict(lambda: {'boxes': np.array([]), 'scores': np.array([])})
+    train_predicts = defaultdict(lambda: {'boxes': np.array([]), 'target': np.array([]), 'scores': np.array([])})
+    valid_predicts = defaultdict(lambda: {'boxes': np.array([]), 'target': np.array([]), 'scores': np.array([])})
 
     # predict train and valid
     for key in loaded_models.keys():
@@ -168,6 +168,7 @@ if __name__ == '__main__':
             preds, loss_dict = model(images, targets)
             if train_predicts[image_id]['boxes'].shape[0] == 0:
                 train_predicts[image_id]['boxes'] = preds[0]['boxes'].detach().cpu().numpy()
+                train_predicts[image_id]['target'] = targets[0]['boxes'].detach().cpu().numpy()
                 train_predicts[image_id]['scores'] = preds[0]['scores'].detach().cpu().numpy()
             else:
                 train_predicts[image_id]['boxes'] = np.concatenate([train_predicts[image_id]['boxes'], preds[0]['boxes'].detach().cpu().numpy()], axis=0)
@@ -181,6 +182,7 @@ if __name__ == '__main__':
             preds, loss_dict = model(images, targets)
             if valid_predicts[image_id]['boxes'].shape[0] == 0:
                 valid_predicts[image_id]['boxes'] = preds[0]['boxes'].detach().cpu().numpy()
+                valid_predicts[image_id]['target'] = targets[0]['boxes'].detach().cpu().numpy()
                 valid_predicts[image_id]['scores'] = preds[0]['scores'].detach().cpu().numpy()
             else:
                 valid_predicts[image_id]['boxes'] = np.concatenate([valid_predicts[image_id]['boxes'], preds[0]['boxes'].detach().cpu().numpy()], axis=0)
@@ -188,7 +190,20 @@ if __name__ == '__main__':
                 sorted_idx = np.argsort(valid_predicts[image_id]['scores'])[::-1]
                 valid_predicts[image_id]['boxes'] = valid_predicts[image_id]['boxes'][sorted_idx, :]
                 valid_predicts[image_id]['scores'] = valid_predicts[image_id]['scores'][sorted_idx]
-        
-    # 
+    
+
+    # post processing
+    for image_id in tqdm.tqdm(train_predicts.keys()):
+        postprocessed_predict = postprocessing([train_predicts[image_id]], config["valid"])[0] if 'valid' in config.keys() else train_predicts[image_id][0]
+        train_predicts[image_id]['processed_boxes'] = postprocessed_predict['boxes']
+        train_predicts[image_id]['processed_scores'] = postprocessed_predict['scores']
+    for image_id in tqdm.tqdm(valid_predicts.keys()):
+        postprocessed_predict = postprocessing([valid_predicts[image_id]], config["valid"])[0] if 'valid' in config.keys() else valid_predicts[image_id][0]
+        valid_predicts[image_id]['processed_boxes'] = postprocessed_predict['boxes']
+        valid_predicts[image_id]['processed_scores'] = postprocessed_predict['scores']
+
     import pdb; pdb.set_trace()
+    # 
+    # processed_outputs = postprocessing(copy.deepcopy(preds), config["valid"]) if 'valid' in config.keys() else outputs
+
 
