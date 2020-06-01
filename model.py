@@ -126,7 +126,22 @@ class Model:
         # TODO: This is hardcoded 
         self.image_scale = 1 
 
-    def __call__(self, images, targets):
+        # Used for efficientdet
+        self.resize_transform = A.Compose([
+            A.Resize(height=self.image_size, width=self.image_size, p=1.0 if self.model_name=='efficient_det' else 0.0), # GPU will be OOM without this
+            ToTensorV2(p=1.0)  # convert numpy image to tensor
+            ], 
+            bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
+        )
+        self.resize_back_transform = A.Compose([
+            A.Resize(height=1024, width=1024), # GPU will be OOM without this
+            ToTensorV2(p=1.0)  # convert numpy image to tensor
+            ], 
+            bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
+        )
+
+
+    def __call__(self, images, targets=None):
         if self.model_name == 'faster_rcnn':
             images = list(image.float().to(self.device) for image in images)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
@@ -139,9 +154,12 @@ class Model:
 
                 self.model.eval()
                 preds = self.model(images, targets)
+                preds = [{k: v.cpu().detach() for k, v in pred.items()} for pred in preds]
                 return preds, loss_dict
 
         elif self.model_name == 'efficient_det':
+           # resize images and boxes into self.image_size
+            images, targets = self._resize(images, targets)
             images = torch.stack(images).to(self.device).float()
             boxes = [target['boxes'].to(self.device).float() for target in targets]
             labels = [target['labels'].to(self.device).float() for target in targets]
@@ -150,10 +168,13 @@ class Model:
                 return {'loss': loss}
             else:
                 outputs, (loss, _, _) = self.model(images, boxes, labels)
-                preds = [{'boxes': xywh2xyxy(res[:, :4])[:, [1,0,3,2]],
+                preds = [{#'boxes': xywh2xyxy(res[:, :4])[:, [1,0,3,2]].clamp(min=0, max=self.image_size-1),
+                          'boxes': xywh2xyxy(res[:, :4]).clamp(min=0, max=self.image_size-1),
                           'labels': res[:, 5],
                           'scores': res[:, 4]} for res in outputs]
                 
+                images, preds = self._resize_back(images, preds)
+                preds = [{k: v.cpu().detach() for k, v in pred.items()} for pred in preds]
                 return preds, {'loss': loss}
 
     def to(self, device):
@@ -175,14 +196,30 @@ class Model:
     def state_dict(self):
         return self.model.state_dict()
 
+    def _resize(self, images, targets):
+        samples = [{
+            'image': image.permute(1, 2, 0).cpu().numpy(),
+            'bboxes': target['boxes'],
+            'labels': target['labels']
+        } for image, target in zip(images, targets)]
+        samples = [self.resize_transform(**sample) for sample in samples]
+        targets_resized = targets
+        for i, (target, sample) in enumerate(zip(targets, samples)):
+            target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            targets_resized[i] = target
+        images_resized = [sample['image'] for sample in samples]
+        return images_resized, targets_resized
     
-def get_model(config):
-
-    model_list = {
-        'faster_rcnn': fasterrcnn_model,
-        'efficient_det': efficientdet_model
-    }
-
-    assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
-    model = model_list[config['name']](**config['config'])
-    return model
+    def _resize_back(self, images, outputs):
+        samples = [{
+            'image': image.permute(1, 2, 0).cpu().numpy(),
+            'bboxes': output['boxes'],
+            'labels': output['labels']
+        } for image, output in zip(images, outputs)]
+        samples = [self.resize_back_transform (**sample) for sample in samples]
+        outputs_resized = outputs
+        for i, (output, sample) in enumerate(zip(outputs, samples)):
+            output['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            outputs_resized[i] = output
+        images_resized = [sample['image'] for sample in samples]
+        return images_resized, outputs_resized
