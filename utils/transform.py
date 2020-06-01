@@ -120,7 +120,10 @@ def tile4(image_list, target_list, image_id_list):
 
     
 
-def mosaic(image, target, image_id, dataset):
+def mosaic(image, target, image_id, dataset, p):
+    
+    if p < np.random.rand():
+        return image, target
 
     additional_image = 3
 
@@ -163,7 +166,11 @@ def mosaic(image, target, image_id, dataset):
 
 
 
-def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
+def cutmix(image, target, image_id, dataset, p, mix=False, alpha=0.5, keep_threshold=0.5):
+
+    if p < np.random.rand():
+        return image, target
+
     # beta分布 beta(alpha, alpha)からサンプリングしてboxを作る
 
     org_image = copy.deepcopy(image)
@@ -199,7 +206,11 @@ def cutmix(image, target, image_id, dataset, alpha=0.5, keep_threshold=0.5):
         return image, target
 
 
-def mixup(image, target, image_id, dataset, alpha=2.0):
+def mixup(image, target, image_id, dataset, p, alpha=2.0):
+
+    if p < np.random.rand():
+        return image, target
+
     l = np.random.beta(alpha, alpha)
     source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
     
@@ -410,13 +421,10 @@ class Transform:
 
         image, target, image_id = example
         
-        # mosaic
-        if np.random.rand() < self.mosaic['p']:
-            image, target = mosaic(image, target, image_id, dataset)
-        if np.random.rand() < self.cutmix['p']:
-            image, target = cutmix(image, target, image_id, dataset)
-        if np.random.rand() < self.mixup['p']:
-            image, target = mixup(image, target, image_id, dataset)
+        # mosaic, cutmix, mixup            
+        image, target = mosaic(image, target, image_id, dataset, **self.mosaic)
+        image, target = cutmix(image, target, image_id, dataset, **self.cutmix)
+        image, target = mixup(image, target, image_id, dataset, **self.mixup)
 
         # for albumentation transforms
         sample = {
