@@ -66,6 +66,7 @@ from utils.logger import Logger
 from utils.functions import convert_dataframe, format_config_by_baseconfig, randomname
 from utils.metric import calculate_score_for_each
 from utils.postprocess import postprocessing
+from utils.optimize import PostProcessOptimizer
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
 
@@ -194,15 +195,22 @@ if __name__ == '__main__':
     train_predicts, valid_predicts = predict_original(loaded_models, train_data_loader, valid_data_loader)
 
 
-    mets = []
-    for image_id in tqdm.tqdm(train_predicts.keys()):
-        met = calculate_score_for_each([train_predicts[image_id]['original']], [train_predicts[image_id]['target']])
-        mets.append(met)
+    # ↓まだ綺麗に書いてない
+    pto = PostProcessOptimizer(train_predicts, valid_predicts)
+    # pto.optimize_nms()
+    # pto.optimize_soft_nms()
+    pto.optimize_wbf()
+
+
+    # mets = []
+    # for image_id in tqdm.tqdm(train_predicts.keys()):
+    #     met = calculate_score_for_each([train_predicts[image_id]['original']], [train_predicts[image_id]['target']])
+    #     mets.append(met)
 
 
     # met = calculate_score_for_each([train_predicts[list(train_predicts.keys())[0]]['original']], [train_predicts[list(train_predicts.keys())[0]]['target']])
    
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     # # 
     # processed_outputs = postprocessing(copy.deepcopy(preds), config["valid"]) if 'valid' in config.keys() else outputs
 
