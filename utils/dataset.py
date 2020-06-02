@@ -80,6 +80,13 @@ class DatasetMixin(Dataset):
         example = self.get_example(i)
         if self.transform:
             example = self.transform(example, self)  
+        else:
+            image, target, image_id = example
+            image = np.transpose(image, (2, 0, 1))
+            image = torch.as_tensor(image, dtype=torch.float32)
+            target['boxes'] = torch.as_tensor(target['boxes'], dtype=torch.float32)
+            example = (image, target, image_id)
+
         return example
 
 
@@ -99,7 +106,7 @@ class DatasetMixin(Dataset):
 
 class GWDDataset(DatasetMixin):
 
-    def __init__(self, dataframe, image_dir, config=None, is_train=False):
+    def __init__(self, dataframe, image_dir, config=None, is_train=False, do_transform=True):
         
         self.config = config
         self.is_train = is_train
@@ -110,7 +117,7 @@ class GWDDataset(DatasetMixin):
         self.indices = np.arange(len(self.image_ids))
         self.image_size = 1024
 
-        transform = Transform(self.config, self.is_train)
+        transform = Transform(self.config, self.is_train) if do_transform else None
         super(GWDDataset, self).__init__(transform=transform)
 
         dff = self.df[['image_id', 'source']].drop_duplicates()
