@@ -40,6 +40,7 @@ from skopt.space import Categorical, Integer, Real
 
 from utils.postprocess import postprocessing
 from utils.metric import calculate_score_for_each
+from utils.functions import get_config
 
 
 class PostProcessOptimizer():
@@ -47,53 +48,15 @@ class PostProcessOptimizer():
     def __init__(self, train_predicts, valid_predicts):
         self.train_predicts = copy.deepcopy(train_predicts)
         self.valid_predicts = copy.deepcopy(valid_predicts)
+        self.optimization_result = {}
 
     def optimize(self, name, space, n_calls=10):
-
-        def config(name, **params):
-            if name == 'nms':
-                config = {
-                    "post_processor": {
-                        "name": name,
-                        "config": {
-                            'threshold': params['threshold']
-                        }
-                    },
-                    "confidence_filter": {
-                        'min_confidence': params['min_confidence']
-                    }
-                }
-            elif name == 'soft_nms':
-                config = {
-                    "post_processor": {
-                        "name": name,
-                        "config": {
-                            'sigma': params['sigma']
-                        }
-                    },
-                    "confidence_filter": {
-                        'min_confidence': params['min_confidence']
-                    }
-                }
-            elif name == 'wbf':
-                config = {
-                    "post_processor": {
-                        "name": name,
-                        "config": {
-                            'threshold': params['threshold']
-                        }
-                    },
-                    "confidence_filter": {
-                        'min_confidence': params['min_confidence']
-                    }
-                }
-            return config
 
         @use_named_args(space)
         def score(**params):
             scores = []
             for image_id in self.train_predicts.keys():
-                processed = postprocessing([self.train_predicts[image_id]['original']], config(name, **params))
+                processed = postprocessing([self.train_predicts[image_id]['original']], get_config(name, **params))
                 scores.append(calculate_score_for_each(processed, [self.train_predicts[image_id]['target']]))
             final_score = np.mean(np.array(scores))            
             return -final_score
@@ -102,24 +65,26 @@ class PostProcessOptimizer():
     
 
     def optimize_nms(self, n_calls=10):
-
+        print('optimizing nms...')
         space = [
             Real(0, 1, name='threshold'),
             Real(0, 1, name='min_confidence')
         ]
         opt_result = self.optimize(name='nms', space=space, n_calls=n_calls)
+        self.optimization_result['nms'] = dict(opt_result)
 
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
         return best_params
     
     def optimize_soft_nms(self, n_calls=10):
-
+        print('optimizing soft nms...')
         space = [
             Real(0, 1, name='sigma'),
             Real(0, 1, name='min_confidence')
         ]
         opt_result = self.optimize(name='soft_nms', space=space, n_calls=n_calls)
+        self.optimization_result['soft_nms'] = dict(opt_result)
 
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
@@ -127,12 +92,13 @@ class PostProcessOptimizer():
     
     
     def optimize_wbf(self, n_calls=10):
-
+        print('optimizing wbf...')
         space = [
             Real(0, 1, name='threshold'),
             Real(0, 1, name='min_confidence')
         ]
         opt_result = self.optimize(name='wbf', space=space, n_calls=n_calls)
+        self.optimization_result['wbf'] = dict(opt_result)
         
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]

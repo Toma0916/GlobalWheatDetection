@@ -63,7 +63,7 @@ from scheduler import get_scheduler
 from utils.dataset import GWDDataset, collate_fn
 from utils.transform import Transform
 from utils.logger import Logger
-from utils.functions import convert_dataframe, format_config_by_baseconfig, randomname
+from utils.functions import get_config, convert_dataframe, format_config_by_baseconfig, randomname
 from utils.metric import calculate_score_for_each
 from utils.postprocess import postprocessing
 from utils.optimize import PostProcessOptimizer
@@ -99,7 +99,8 @@ def predict_original_for_loader(loaded_models, dataloader):
     predicts = defaultdict(lambda: {'original': defaultdict(dict), 'target': defaultdict(dict), 'processed': defaultdict(dict)})
     metrics = []
 
-    for key in loaded_models.keys():
+    for i, key in enumerate(loaded_models.keys()):
+        print('【%d/%d】' % (i+1, len(loaded_models.keys())))
         model = loaded_models[key]['model']
         for images, targets, image_ids in tqdm.tqdm(dataloader):
             image_id = image_ids[0]
@@ -120,10 +121,38 @@ def predict_original_for_loader(loaded_models, dataloader):
     
 
 def predict_original(loaded_models, train_data_loader, valid_data_loader):
+    print('predicting train...')
     train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader)
+    print('predicting valid...')
     valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader)
     return train_predicts, train_metrics, valid_predicts, valid_metrics
     
+    
+def apply_postprocess(train_predicts, valid_predicts, config):
+
+        train_predicts = copy.deepcopy(train_predicts)
+        valid_predicts = copy.deepcopy(valid_predicts)
+
+        train_metrics = []
+        valid_metrics = []
+        for image_id in train_predicts.keys():
+            processed = postprocessing([train_predicts[image_id]['original']], config)
+            metrics = calculate_score_for_each(processed, [train_predicts[image_id]['target']])
+            train_metrics.append(metrics)
+            train_predicts[image_id]['processed']['boxes'] = processed[0]['boxes']
+            train_predicts[image_id]['processed']['scores'] = processed[0]['scores']
+        
+        for image_id in valid_predicts.keys():
+            processed = postprocessing([valid_predicts[image_id]['original']], config)
+            metrics = calculate_score_for_each(processed, [valid_predicts[image_id]['target']])
+            valid_metrics.append(metrics)
+            valid_predicts[image_id]['processed']['boxes'] = processed[0]['boxes']
+            valid_predicts[image_id]['processed']['scores'] = processed[0]['scores']
+        
+        train_metrics = np.array(train_metrics)
+        valid_metrics = np.array(valid_metrics)
+
+        return train_predicts, train_metrics, valid_predicts, valid_metrics
 
 if __name__ == '__main__':
 
@@ -139,7 +168,6 @@ if __name__ == '__main__':
     with open(args.json_path, 'r') as f:
         predict_config = json.load(f)
     debug = predict_config['debug']
-    # [WARN]: hard cording now
     model_paths = predict_config['model_paths']
 
     SRC_DIR = Path('.').resolve()/'src'
@@ -159,10 +187,8 @@ if __name__ == '__main__':
             sys.exit()  # [WIP]: reload weights
         
         weight_path = list(sorted((OUTPUT_DIR/path).glob('*.pt')))[-1]  # latest weight
-
         loaded_models[path]['config'] = config
         loaded_models[path]['weight_path'] = weight_path
-
         model = Model(loaded_models[path]['config']['model'])
         model = model.load_state_dict(str(loaded_models[path]['weight_path'])).to(device)
         model.eval()
@@ -194,99 +220,75 @@ if __name__ == '__main__':
 
     # predict train and valid 
     # ensemble if you selected multiple models
-    train_predicts, train_metrics, valid_predicts, valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
-    print('original train metrics: ', np.mean(train_metrics))
-    print('original valid metrics: ', np.mean(valid_metrics))
+    train_predicts, original_train_metrics, valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
 
+    # optimize postprocess
+    postprocess_optimizer = PostProcessOptimizer(train_predicts, valid_predicts)
+    best_nms_threshold, best_nms_min_confidence = postprocess_optimizer.optimize_nms(n_calls=50)
+    best_soft_nms_sigma, best_soft_nms_min_confidence = postprocess_optimizer.optimize_soft_nms(n_calls=50)
+    best_wbf_threshold, best_wbf_min_confidence = postprocess_optimizer.optimize_wbf(n_calls=50)
 
-
-    # ↓まだ綺麗に書いてない
-    pto = PostProcessOptimizer(train_predicts, valid_predicts)
-    # best_nms_threshold, best_nms_min_confidence = pto.optimize_nms(n_calls=50)
-    # best_soft_nms_sigma, best_soft_nms_min_confidence = pto.optimize_soft_nms(n_calls=50)
-    best_wbf_threshold, best_wbf_min_confidence = pto.optimize_wbf(n_calls=50)
-
-    # wbfの場合
-    config = {
-        "post_processor": {
-            "name": 'wbf',
-            "config": {
-                'threshold': best_wbf_threshold
-                }
-            },
-            "confidence_filter": {
-                'min_confidence': best_wbf_min_confidence
-            }
-        }
+    nms_config = get_config(name='nms', threshold=best_nms_threshold, min_confidence=best_nms_min_confidence)
+    soft_nms_config = get_config(name='soft_nms', sigma=best_soft_nms_sigma, min_confidence=best_soft_nms_min_confidence)
+    wbf_config = get_config(name='wbf', threshold=best_wbf_threshold, min_confidence=best_wbf_min_confidence)
+    nms_train_predicts, nms_train_metrics, nms_valid_predicts, nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, nms_config)
+    soft_nms_train_predicts, soft_nms_train_metrics, soft_nms_valid_predicts, soft_nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, soft_nms_config)
+    wbf_train_predicts, wbf_train_metrics, wbf_valid_predicts, wbf_valid_metrics = apply_postprocess(train_predicts, valid_predicts, wbf_config)
     
-    train_metrics = []
-    valid_metrics = []
-    for image_id in train_predicts.keys():
-        processed = postprocessing([train_predicts[image_id]['original']], config)
-        metrics = calculate_score_for_each(processed, [train_predicts[image_id]['target']])
-        train_metrics.append(metrics)
-        train_predicts[image_id]['processed']['boxes'] = processed[0]['boxes']
-        train_predicts[image_id]['processed']['scores'] = processed[0]['scores']
-    
-    for image_id in valid_predicts.keys():
-        processed = postprocessing([valid_predicts[image_id]['original']], config)
-        metrics = calculate_score_for_each(processed, [valid_predicts[image_id]['target']])
-        valid_metrics.append(metrics)
-        valid_predicts[image_id]['processed']['boxes'] = processed[0]['boxes']
-        valid_predicts[image_id]['processed']['scores'] = processed[0]['scores']
-    
-    train_metrics = np.array(train_metrics)
-    valid_metrics = np.array(valid_metrics)
+    print('original train metrics: ', np.mean(original_train_metrics))
+    print('original valid metrics: ', np.mean(original_valid_metrics))
+    print('nms train metrics: ', np.mean(nms_train_metrics))
+    print('nms valid metrics: ', np.mean(nms_valid_metrics))
+    print('soft nms train metrics: ', np.mean(soft_nms_train_metrics))
+    print('soft nms valid metrics: ', np.mean(soft_nms_valid_metrics))
+    print('wbf train metrics: ', np.mean(wbf_train_metrics))
+    print('wbf valid metrics: ', np.mean(wbf_valid_metrics))
 
-    print('processed train metrics: ', np.mean(train_metrics))
-    print('processed valid metrics: ', np.mean(valid_metrics))
-
-    # ここでサンプル描画
-    images, targets, image_ids = iter(train_data_loader).next()
-    image = (cv2.UMat(np.transpose(images[0].detach().cpu().numpy(), (1, 2, 0))).get() * 255).astype(np.uint8)
-    image_id = image_ids[0]
-    target_box = train_predicts[image_ids[0]]['target']['boxes'].detach().cpu().numpy()
-    for j in range(target_box.shape[0]):
-        box = target_box[j]
-        box = box.astype(np.int)
-        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
+    # # ここでサンプル描画
+    # images, targets, image_ids = iter(train_data_loader).next()
+    # image = (cv2.UMat(np.transpose(images[0].detach().cpu().numpy(), (1, 2, 0))).get() * 255).astype(np.uint8)
+    # image_id = image_ids[0]
+    # target_box = train_predicts[image_ids[0]]['target']['boxes'].detach().cpu().numpy()
+    # for j in range(target_box.shape[0]):
+    #     box = target_box[j]
+    #     box = box.astype(np.int)
+    #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
     
-    original_box = train_predicts[image_ids[0]]['original']['boxes']
-    for j in range(original_box.shape[0]):
-        box = original_box[j]
-        box = box.astype(np.int)
-        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 220, 0), 1)
+    # original_box = train_predicts[image_ids[0]]['original']['boxes']
+    # for j in range(original_box.shape[0]):
+    #     box = original_box[j]
+    #     box = box.astype(np.int)
+    #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 220, 0), 1)
     
-    processed_box = train_predicts[image_ids[0]]['processed']['boxes']
-    for j in range(processed_box.shape[0]):
-        box = processed_box[j]
-        box = box.astype(np.int)
-        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
-    cv2.imwrite('./sample.png', image)
+    # processed_box = train_predicts[image_ids[0]]['processed']['boxes']
+    # for j in range(processed_box.shape[0]):
+    #     box = processed_box[j]
+    #     box = box.astype(np.int)
+    #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
+    # cv2.imwrite('./sample.png', image)
 
-
-    images, targets, image_ids = iter(valid_data_loader).next()
-    image = (cv2.UMat(np.transpose(images[0].detach().cpu().numpy(), (1, 2, 0))).get() * 255).astype(np.uint8)
-    image_id = image_ids[0]
-    target_box = valid_predicts[image_ids[0]]['target']['boxes'].detach().cpu().numpy()
-    for j in range(target_box.shape[0]):
-        box = target_box[j]
-        box = box.astype(np.int)
-        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
+    # images, targets, image_ids = iter(valid_data_loader).next()
+    # image = (cv2.UMat(np.transpose(images[0].detach().cpu().numpy(), (1, 2, 0))).get() * 255).astype(np.uint8)
+    # image_id = image_ids[0]
+    # target_box = valid_predicts[image_ids[0]]['target']['boxes'].detach().cpu().numpy()
+    # for j in range(target_box.shape[0]):
+    #     box = target_box[j]
+    #     box = box.astype(np.int)
+    #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
     
-    original_box = valid_predicts[image_ids[0]]['original']['boxes']
-    for j in range(original_box.shape[0]):
-        box = original_box[j]
-        box = box.astype(np.int)
-        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 220, 0), 1)
+    # original_box = valid_predicts[image_ids[0]]['original']['boxes']
+    # for j in range(original_box.shape[0]):
+    #     box = original_box[j]
+    #     box = box.astype(np.int)
+    #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 220, 0), 1)
     
-    processed_box = valid_predicts[image_ids[0]]['processed']['boxes']
-    for j in range(processed_box.shape[0]):
-        box = processed_box[j]
-        box = box.astype(np.int)
-        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
-    cv2.imwrite('./sample2.png', image)
+    # processed_box = valid_predicts[image_ids[0]]['processed']['boxes']
+    # for j in range(processed_box.shape[0]):
+    #     box = processed_box[j]
+    #     box = box.astype(np.int)
+    #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
+    # cv2.imwrite('./sample2.png', image)
 
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
 
 
