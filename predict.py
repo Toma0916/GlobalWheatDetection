@@ -97,29 +97,32 @@ def sanity_check(loaded_models):
 def predict_original_for_loader(loaded_models, dataloader):
     
     predicts = defaultdict(lambda: {'original': defaultdict(dict), 'target': defaultdict(dict), 'processed': defaultdict(dict)})
+    metrics = []
 
     for key in loaded_models.keys():
         model = loaded_models[key]['model']
         for images, targets, image_ids in tqdm.tqdm(dataloader):
             image_id = image_ids[0]
             preds, loss_dict = model(images, targets)
+            metrics.append(calculate_score_for_each(preds, targets))
+
             if 'boxes' not in predicts[image_id]['original']:
-                predicts[image_id]['original']['boxes'] = preds[0]['boxes'].detach().cpu().numpy()
-                predicts[image_id]['original']['scores'] = preds[0]['scores'].detach().cpu().numpy()
+                predicts[image_id]['original']['boxes'] = preds[0]['boxes']
+                predicts[image_id]['original']['scores'] = preds[0]['scores']
                 predicts[image_id]['target']['boxes'] = targets[0]['boxes']
             else:
-                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], preds[0]['boxes'].detach().cpu().numpy()], axis=0)
-                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], preds[0]['scores'].detach().cpu().numpy()], axis=0)
+                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], preds[0]['boxes']], axis=0)
+                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], preds[0]['scores']], axis=0)
                 sorted_idx = np.argsort(predicts[image_id]['original']['scores'])[::-1]
                 predicts[image_id]['original']['boxes'] = predicts[image_id]['original']['boxes'][sorted_idx, :]
                 predicts[image_id]['original']['scores'] = predicts[image_id]['original']['scores'][sorted_idx]
-    return predicts
+    return predicts, np.array(metrics)
     
 
 def predict_original(loaded_models, train_data_loader, valid_data_loader):
-    train_predicts = predict_original_for_loader(loaded_models, train_data_loader)
-    valid_predicts = predict_original_for_loader(loaded_models, valid_data_loader)
-    return train_predicts, valid_predicts
+    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader)
+    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader)
+    return train_predicts, train_metrics, valid_predicts, valid_metrics
     
 
 if __name__ == '__main__':
@@ -169,7 +172,6 @@ if __name__ == '__main__':
     assert sanity_check(loaded_models), 'The models you selected are invalid.'
     
     # set seed (not enough for complete reproducibility)
-    debug = True
     random_seed = loaded_models[model_paths[0]]['config']['general']['seed']
     random.seed(random_seed)  
     np.random.seed(random_seed)
@@ -185,33 +187,106 @@ if __name__ == '__main__':
     valid_ids = valid_ids[:2] if debug else valid_ids
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=True)
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=False)
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=True, do_transform=False)
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=False, do_transform=False)
     train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
     valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # predict train and valid 
     # ensemble if you selected multiple models
-    train_predicts, valid_predicts = predict_original(loaded_models, train_data_loader, valid_data_loader)
+    train_predicts, train_metrics, valid_predicts, valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
+    print('original train metrics: ', np.mean(train_metrics))
+    print('original valid metrics: ', np.mean(valid_metrics))
+
 
 
     # ↓まだ綺麗に書いてない
     pto = PostProcessOptimizer(train_predicts, valid_predicts)
-    # pto.optimize_nms()
-    # pto.optimize_soft_nms()
-    pto.optimize_wbf()
+    # best_nms_threshold, best_nms_min_confidence = pto.optimize_nms(n_calls=50)
+    # best_soft_nms_sigma, best_soft_nms_min_confidence = pto.optimize_soft_nms(n_calls=50)
+    best_wbf_threshold, best_wbf_min_confidence = pto.optimize_wbf(n_calls=50)
+
+    # wbfの場合
+    config = {
+        "post_processor": {
+            "name": 'wbf',
+            "config": {
+                'threshold': best_wbf_threshold
+                }
+            },
+            "confidence_filter": {
+                'min_confidence': best_wbf_min_confidence
+            }
+        }
+    
+    train_metrics = []
+    valid_metrics = []
+    for image_id in train_predicts.keys():
+        processed = postprocessing([train_predicts[image_id]['original']], config)
+        metrics = calculate_score_for_each(processed, [train_predicts[image_id]['target']])
+        train_metrics.append(metrics)
+        train_predicts[image_id]['processed']['boxes'] = processed[0]['boxes']
+        train_predicts[image_id]['processed']['scores'] = processed[0]['scores']
+    
+    for image_id in valid_predicts.keys():
+        processed = postprocessing([valid_predicts[image_id]['original']], config)
+        metrics = calculate_score_for_each(processed, [valid_predicts[image_id]['target']])
+        valid_metrics.append(metrics)
+        valid_predicts[image_id]['processed']['boxes'] = processed[0]['boxes']
+        valid_predicts[image_id]['processed']['scores'] = processed[0]['scores']
+    
+    train_metrics = np.array(train_metrics)
+    valid_metrics = np.array(valid_metrics)
+
+    print('processed train metrics: ', np.mean(train_metrics))
+    print('processed valid metrics: ', np.mean(valid_metrics))
+
+    # ここでサンプル描画
+    images, targets, image_ids = iter(train_data_loader).next()
+    image = (cv2.UMat(np.transpose(images[0].detach().cpu().numpy(), (1, 2, 0))).get() * 255).astype(np.uint8)
+    image_id = image_ids[0]
+    target_box = train_predicts[image_ids[0]]['target']['boxes'].detach().cpu().numpy()
+    for j in range(target_box.shape[0]):
+        box = target_box[j]
+        box = box.astype(np.int)
+        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
+    
+    original_box = train_predicts[image_ids[0]]['original']['boxes']
+    for j in range(original_box.shape[0]):
+        box = original_box[j]
+        box = box.astype(np.int)
+        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 220, 0), 1)
+    
+    processed_box = train_predicts[image_ids[0]]['processed']['boxes']
+    for j in range(processed_box.shape[0]):
+        box = processed_box[j]
+        box = box.astype(np.int)
+        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
+    cv2.imwrite('./sample.png', image)
 
 
-    # mets = []
-    # for image_id in tqdm.tqdm(train_predicts.keys()):
-    #     met = calculate_score_for_each([train_predicts[image_id]['original']], [train_predicts[image_id]['target']])
-    #     mets.append(met)
+    images, targets, image_ids = iter(valid_data_loader).next()
+    image = (cv2.UMat(np.transpose(images[0].detach().cpu().numpy(), (1, 2, 0))).get() * 255).astype(np.uint8)
+    image_id = image_ids[0]
+    target_box = valid_predicts[image_ids[0]]['target']['boxes'].detach().cpu().numpy()
+    for j in range(target_box.shape[0]):
+        box = target_box[j]
+        box = box.astype(np.int)
+        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 0, 0), 3)
+    
+    original_box = valid_predicts[image_ids[0]]['original']['boxes']
+    for j in range(original_box.shape[0]):
+        box = original_box[j]
+        box = box.astype(np.int)
+        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (220, 220, 0), 1)
+    
+    processed_box = valid_predicts[image_ids[0]]['processed']['boxes']
+    for j in range(processed_box.shape[0]):
+        box = processed_box[j]
+        box = box.astype(np.int)
+        cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
+    cv2.imwrite('./sample2.png', image)
 
-
-    # met = calculate_score_for_each([train_predicts[list(train_predicts.keys())[0]]['original']], [train_predicts[list(train_predicts.keys())[0]]['target']])
-   
-    # import pdb; pdb.set_trace()
-    # # 
-    # processed_outputs = postprocessing(copy.deepcopy(preds), config["valid"]) if 'valid' in config.keys() else outputs
+    import pdb; pdb.set_trace()
 
 

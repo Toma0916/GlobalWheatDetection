@@ -45,8 +45,8 @@ from utils.metric import calculate_score_for_each
 class PostProcessOptimizer():
 
     def __init__(self, train_predicts, valid_predicts):
-        self.train_predicts = train_predicts
-        self.valid_predicts = valid_predicts
+        self.train_predicts = copy.deepcopy(train_predicts)
+        self.valid_predicts = copy.deepcopy(valid_predicts)
 
     def optimize(self, name, space, n_calls=10):
 
@@ -109,8 +109,9 @@ class PostProcessOptimizer():
         ]
         opt_result = self.optimize(name='nms', space=space, n_calls=n_calls)
 
-        import pdb; pdb.set_trace()
-
+        best_itr = np.argmin(opt_result.func_vals)
+        best_params = opt_result.x_iters[best_itr]
+        return best_params
     
     def optimize_soft_nms(self, n_calls=10):
 
@@ -120,7 +121,9 @@ class PostProcessOptimizer():
         ]
         opt_result = self.optimize(name='soft_nms', space=space, n_calls=n_calls)
 
-        import pdb; pdb.set_trace()
+        best_itr = np.argmin(opt_result.func_vals)
+        best_params = opt_result.x_iters[best_itr]
+        return best_params
     
     
     def optimize_wbf(self, n_calls=10):
@@ -130,8 +133,9 @@ class PostProcessOptimizer():
             Real(0, 1, name='min_confidence')
         ]
         opt_result = self.optimize(name='wbf', space=space, n_calls=n_calls)
-
-        import pdb; pdb.set_trace()
-    
+        
+        best_itr = np.argmin(opt_result.func_vals)
+        best_params = opt_result.x_iters[best_itr]
+        return best_params    
 
 
