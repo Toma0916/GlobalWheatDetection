@@ -78,6 +78,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - pandas=1.0.3
 - opencv=4.2.0
 - scikit-learn=0.22.1 
+- scikit-optimize=0.7.4  
 - pytorch=1.5.0 
 - torchvision=0.6.0 
 - albumentations=0.4.5
