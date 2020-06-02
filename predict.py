@@ -90,11 +90,53 @@ def sanity_check(loaded_models):
             return False
 
     return True
+
+
+# load model and predict
+def predict_original_for_loader(loaded_models, dataloader):
+    
+    predicts = defaultdict(lambda: {'original': defaultdict(dict), 'target': defaultdict(dict), 'processed': defaultdict(dict)})
+
+    for key in loaded_models.keys():
+        model = loaded_models[key]['model']
+        for images, targets, image_ids in tqdm.tqdm(dataloader):
+            image_id = image_ids[0]
+            preds, loss_dict = model(images, targets)
+            if 'boxes' not in predicts[image_id]['original']:
+                predicts[image_id]['original']['boxes'] = preds[0]['boxes'].detach().cpu().numpy()
+                predicts[image_id]['original']['scores'] = preds[0]['scores'].detach().cpu().numpy()
+                predicts[image_id]['target']['boxes'] = targets[0]['boxes']
+            else:
+                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], preds[0]['boxes'].detach().cpu().numpy()], axis=0)
+                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], preds[0]['scores'].detach().cpu().numpy()], axis=0)
+                sorted_idx = np.argsort(predicts[image_id]['original']['scores'])[::-1]
+                predicts[image_id]['original']['boxes'] = predicts[image_id]['original']['boxes'][sorted_idx, :]
+                predicts[image_id]['original']['scores'] = predicts[image_id]['original']['scores'][sorted_idx]
+    return predicts
+    
+
+def predict_original(loaded_models, train_data_loader, valid_data_loader):
+    train_predicts = predict_original_for_loader(loaded_models, train_data_loader)
+    valid_predicts = predict_original_for_loader(loaded_models, valid_data_loader)
+    return train_predicts, valid_predicts
     
 
 if __name__ == '__main__':
 
     now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('json_path')
+    args = parser.parse_args()
+    device = torch.device('cuda:0')
+
+    assert os.path.exists(args.json_path), "json\'s name '%s' is not valid." % args.json_path
+
+    with open(args.json_path, 'r') as f:
+        predict_config = json.load(f)
+    debug = predict_config['debug']
+    # [WARN]: hard cording now
+    model_paths = predict_config['model_paths']
 
     SRC_DIR = Path('.').resolve()/'src'
     TRAIN_IMAGE_DIR = SRC_DIR/'train'
@@ -102,14 +144,8 @@ if __name__ == '__main__':
     DATAFRAME = convert_dataframe(pd.read_csv(str(SRC_DIR/'train.csv')))    
     OUTPUT_DIR = Path('.').resolve()/'output'
 
-
-    # [WARN]: hard cording now
-    pretrained_paths = ['manhattan/exp_9',
-                        'manhattan/exp_13']
-
     loaded_models = defaultdict(dict)
-
-    for path in pretrained_paths:
+    for path in model_paths:
         config_path = OUTPUT_DIR/path/'config.json'
         with open(str(config_path), 'r') as f:
             config = json.load(f)
@@ -122,88 +158,52 @@ if __name__ == '__main__':
 
         loaded_models[path]['config'] = config
         loaded_models[path]['weight_path'] = weight_path
+
+        model = Model(loaded_models[path]['config']['model'])
+        model = model.load_state_dict(str(loaded_models[path]['weight_path'])).to(device)
+        model.eval()
+        loaded_models[path]['model'] = model
     
     # check random_seed and train_valid_split
     assert sanity_check(loaded_models), 'The models you selected are invalid.'
     
-    
-    random_seed = loaded_models[pretrained_paths[0]]['config']['general']['seed']
-
     # set seed (not enough for complete reproducibility)
     debug = True
+    random_seed = loaded_models[model_paths[0]]['config']['general']['seed']
     random.seed(random_seed)  
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)  
     torch.cuda.manual_seed(random_seed) 
     
-    device = torch.device('cuda:0')
-
     def worker_init_fn(worker_id):   
         random.seed(worker_id+random_seed)   
         np.random.seed(worker_id+random_seed) 
 
-    train_ids, valid_ids = train_valid_split(DATAFRAME, loaded_models[pretrained_paths[0]]['config'])[0]
-    train_ids = train_ids[:100] if debug else train_ids
-    valid_ids = valid_ids[:20] if debug else valid_ids
+    train_ids, valid_ids = train_valid_split(DATAFRAME, loaded_models[model_paths[0]]['config'])[0]
+    train_ids = train_ids[:10] if debug else train_ids
+    valid_ids = valid_ids[:2] if debug else valid_ids
     train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, loaded_models[pretrained_paths[0]]['config'], is_train=True)
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, loaded_models[pretrained_paths[0]]['config'], is_train=False)
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=True)
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=False)
     train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
     valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
-    # load model and predict
-    train_predicts = defaultdict(lambda: {'boxes': np.array([]), 'target': np.array([]), 'scores': np.array([])})
-    valid_predicts = defaultdict(lambda: {'boxes': np.array([]), 'target': np.array([]), 'scores': np.array([])})
+    # predict train and valid 
+    # ensemble if you selected multiple models
+    train_predicts, valid_predicts = predict_original(loaded_models, train_data_loader, valid_data_loader)
 
-    # predict train and valid
-    for key in loaded_models.keys():
-        model = Model(loaded_models[key]['config']['model'])
-        model = model.load_state_dict(str(loaded_models[key]['weight_path'])).to(device)
-        model.eval()
-        loaded_models[path]['model'] = model
 
-        for images, targets, image_ids in tqdm.tqdm(train_data_loader):
-            image_id = image_ids[0]
-            preds, loss_dict = model(images, targets)
-            if train_predicts[image_id]['boxes'].shape[0] == 0:
-                train_predicts[image_id]['boxes'] = preds[0]['boxes'].detach().cpu().numpy()
-                train_predicts[image_id]['target'] = targets[0]['boxes'].detach().cpu().numpy()
-                train_predicts[image_id]['scores'] = preds[0]['scores'].detach().cpu().numpy()
-            else:
-                train_predicts[image_id]['boxes'] = np.concatenate([train_predicts[image_id]['boxes'], preds[0]['boxes'].detach().cpu().numpy()], axis=0)
-                train_predicts[image_id]['scores'] = np.concatenate([train_predicts[image_id]['scores'], preds[0]['scores'].detach().cpu().numpy()], axis=0)
-                sorted_idx = np.argsort(train_predicts[image_id]['scores'])[::-1]
-                train_predicts[image_id]['boxes'] = train_predicts[image_id]['boxes'][sorted_idx, :]
-                train_predicts[image_id]['scores'] = train_predicts[image_id]['scores'][sorted_idx]
-        
-        for images, targets, image_ids in tqdm.tqdm(valid_data_loader):
-            image_id = image_ids[0]
-            preds, loss_dict = model(images, targets)
-            if valid_predicts[image_id]['boxes'].shape[0] == 0:
-                valid_predicts[image_id]['boxes'] = preds[0]['boxes'].detach().cpu().numpy()
-                valid_predicts[image_id]['target'] = targets[0]['boxes'].detach().cpu().numpy()
-                valid_predicts[image_id]['scores'] = preds[0]['scores'].detach().cpu().numpy()
-            else:
-                valid_predicts[image_id]['boxes'] = np.concatenate([valid_predicts[image_id]['boxes'], preds[0]['boxes'].detach().cpu().numpy()], axis=0)
-                valid_predicts[image_id]['scores'] = np.concatenate([valid_predicts[image_id]['scores'], preds[0]['scores'].detach().cpu().numpy()], axis=0)
-                sorted_idx = np.argsort(valid_predicts[image_id]['scores'])[::-1]
-                valid_predicts[image_id]['boxes'] = valid_predicts[image_id]['boxes'][sorted_idx, :]
-                valid_predicts[image_id]['scores'] = valid_predicts[image_id]['scores'][sorted_idx]
-    
-
-    # post processing
+    mets = []
     for image_id in tqdm.tqdm(train_predicts.keys()):
-        postprocessed_predict = postprocessing([train_predicts[image_id]], config["valid"])[0] if 'valid' in config.keys() else train_predicts[image_id][0]
-        train_predicts[image_id]['processed_boxes'] = postprocessed_predict['boxes']
-        train_predicts[image_id]['processed_scores'] = postprocessed_predict['scores']
-    for image_id in tqdm.tqdm(valid_predicts.keys()):
-        postprocessed_predict = postprocessing([valid_predicts[image_id]], config["valid"])[0] if 'valid' in config.keys() else valid_predicts[image_id][0]
-        valid_predicts[image_id]['processed_boxes'] = postprocessed_predict['boxes']
-        valid_predicts[image_id]['processed_scores'] = postprocessed_predict['scores']
+        met = calculate_score_for_each([train_predicts[image_id]['original']], [train_predicts[image_id]['target']])
+        mets.append(met)
 
+
+    # met = calculate_score_for_each([train_predicts[list(train_predicts.keys())[0]]['original']], [train_predicts[list(train_predicts.keys())[0]]['target']])
+   
     import pdb; pdb.set_trace()
-    # 
+    # # 
     # processed_outputs = postprocessing(copy.deepcopy(preds), config["valid"]) if 'valid' in config.keys() else outputs
 
 
