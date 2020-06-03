@@ -215,8 +215,8 @@ if __name__ == '__main__':
     valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
     train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=True, do_transform=False)
     valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=False, do_transform=False)
-    train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
-    valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=4, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
+    valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
     # predict train and valid 
     # ensemble if you selected multiple models
