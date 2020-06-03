@@ -15,6 +15,7 @@ import warnings
 import glob
 import string
 import copy
+from collections import defaultdict
 
 import numpy as np 
 from numpy.random.mtrand import RandomState
@@ -263,3 +264,16 @@ def calc_box_overlap(boxes, box):
     intersection = w * h
     ratio = intersection/area
     return ratio
+
+
+def get_config(name, **params):
+    config = defaultdict(dict)
+    config['post_processor']['name'] = name
+    config['confidence_filter']['min_confidence'] = params['min_confidence']
+    if name == 'nms':
+        config['post_processor']['config'] = {'threshold': params['threshold']}
+    elif name == 'soft_nms':
+        config['post_processor']['config'] = {'sigma': params['sigma']}            
+    elif name == 'wbf':
+        config['post_processor']['config'] = {'threshold': params['threshold']}            
+    return config

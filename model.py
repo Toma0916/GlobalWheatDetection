@@ -175,6 +175,11 @@ class Model:
     def state_dict(self):
         return self.model.state_dict()
 
+    def load_state_dict(self, weights_path):
+        self.model.load_state_dict(torch.load(weights_path))
+        return self
+
+
     
 def get_model(config):
 
