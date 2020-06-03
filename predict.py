@@ -235,12 +235,22 @@ if __name__ == '__main__':
     soft_nms_train_predicts, soft_nms_train_metrics, soft_nms_valid_predicts, soft_nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, soft_nms_config)
     wbf_train_predicts, wbf_train_metrics, wbf_valid_predicts, wbf_valid_metrics = apply_postprocess(train_predicts, valid_predicts, wbf_config)
     
+    print()
     print('original train metrics: ', np.mean(original_train_metrics))
     print('original valid metrics: ', np.mean(original_valid_metrics))
+
+    print()
+    print('nms best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['nms']['x']))
     print('nms train metrics: ', np.mean(nms_train_metrics))
     print('nms valid metrics: ', np.mean(nms_valid_metrics))
+    
+    print()
+    print('soft nms best params: sigma=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['soft_nms']['x']))
     print('soft nms train metrics: ', np.mean(soft_nms_train_metrics))
     print('soft nms valid metrics: ', np.mean(soft_nms_valid_metrics))
+
+    print()
+    print('wbf best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['wbf']['x']))
     print('wbf train metrics: ', np.mean(wbf_train_metrics))
     print('wbf valid metrics: ', np.mean(wbf_valid_metrics))
 
