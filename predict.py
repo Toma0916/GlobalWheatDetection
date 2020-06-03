@@ -154,6 +154,89 @@ def apply_postprocess(train_predicts, valid_predicts, config):
 
         return train_predicts, train_metrics, valid_predicts, valid_metrics
 
+
+def load_models(predict_config):
+
+    model_paths = predict_config['model_paths']
+    loaded_models = defaultdict(dict)
+    for path in model_paths:
+        config_path = OUTPUT_DIR/path/'config.json'
+        with open(str(config_path), 'r') as f:
+            config = json.load(f)
+
+        if 'kfold' in config['general'] and 0 < config['general']['kfold']:
+            print('[WARN]: not supporting k-fold. Execute sys.exit().')
+            sys.exit() 
+        
+        weight_path = list(sorted((OUTPUT_DIR/path).glob('*.pt')))[-1]  # latest weight
+        loaded_models[path]['config'] = config
+        loaded_models[path]['weight_path'] = weight_path
+        model = Model(loaded_models[path]['config']['model'])
+        model = model.load_state_dict(str(loaded_models[path]['weight_path'])).to(device)
+        model.eval()
+        loaded_models[path]['model'] = model
+
+    general_config = loaded_models[model_paths[0]]['config']
+
+    return loaded_models, general_config
+
+
+
+def get_dataloader(general_config):
+
+    def worker_init_fn(worker_id):   
+        random.seed(worker_id+random_seed)   
+        np.random.seed(worker_id+random_seed) 
+
+    train_ids, valid_ids = train_valid_split(DATAFRAME, general_config)[0]
+    train_ids = train_ids[:10] if debug else train_ids
+    valid_ids = valid_ids[:2] if debug else valid_ids
+    train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
+    valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
+    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, general_config, is_train=True, do_transform=False)
+    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, general_config, is_train=False, do_transform=False)
+    train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
+    valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+
+    return train_data_loader, valid_data_loader
+
+
+def optimize_postprocess(postprocess_optimizer, predict_config=None, vervose=1):
+
+    # optimize postprocess
+    best_nms_threshold, best_nms_min_confidence = postprocess_optimizer.optimize_nms(n_calls=50)
+    best_soft_nms_sigma, best_soft_nms_min_confidence = postprocess_optimizer.optimize_soft_nms(n_calls=50)
+    best_wbf_threshold, best_wbf_min_confidence = postprocess_optimizer.optimize_wbf(n_calls=50)
+
+    nms_config = get_config(name='nms', threshold=best_nms_threshold, min_confidence=best_nms_min_confidence)
+    soft_nms_config = get_config(name='soft_nms', sigma=best_soft_nms_sigma, min_confidence=best_soft_nms_min_confidence)
+    wbf_config = get_config(name='wbf', threshold=best_wbf_threshold, min_confidence=best_wbf_min_confidence)
+    nms_train_predicts, nms_train_metrics, nms_valid_predicts, nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, nms_config)
+    soft_nms_train_predicts, soft_nms_train_metrics, soft_nms_valid_predicts, soft_nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, soft_nms_config)
+    wbf_train_predicts, wbf_train_metrics, wbf_valid_predicts, wbf_valid_metrics = apply_postprocess(train_predicts, valid_predicts, wbf_config)
+
+    if 0 < vervose:
+        print()
+        print('original train metrics: ', np.mean(original_train_metrics))
+        print('original valid metrics: ', np.mean(original_valid_metrics))
+
+        print()
+        print('nms best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['nms']['x']))
+        print('nms train metrics: ', np.mean(nms_train_metrics))
+        print('nms valid metrics: ', np.mean(nms_valid_metrics))
+        
+        print()
+        print('soft nms best params: sigma=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['soft_nms']['x']))
+        print('soft nms train metrics: ', np.mean(soft_nms_train_metrics))
+        print('soft nms valid metrics: ', np.mean(soft_nms_valid_metrics))
+
+        print()
+        print('wbf best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['wbf']['x']))
+        print('wbf train metrics: ', np.mean(wbf_train_metrics))
+        print('wbf valid metrics: ', np.mean(wbf_valid_metrics))
+
+
+
 if __name__ == '__main__':
 
     now = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -168,7 +251,6 @@ if __name__ == '__main__':
     with open(args.json_path, 'r') as f:
         predict_config = json.load(f)
     debug = predict_config['debug']
-    model_paths = predict_config['model_paths']
 
     SRC_DIR = Path('.').resolve()/'src'
     TRAIN_IMAGE_DIR = SRC_DIR/'train'
@@ -176,83 +258,32 @@ if __name__ == '__main__':
     DATAFRAME = convert_dataframe(pd.read_csv(str(SRC_DIR/'train.csv')))    
     OUTPUT_DIR = Path('.').resolve()/'output'
 
-    loaded_models = defaultdict(dict)
-    for path in model_paths:
-        config_path = OUTPUT_DIR/path/'config.json'
-        with open(str(config_path), 'r') as f:
-            config = json.load(f)
-
-        if 'kfold' in config['general'] and 0 < config['general']['kfold']:
-            print('[WARN]: not supporting k-fold. Execute sys.exit().')
-            sys.exit()  # [WIP]: reload weights
-        
-        weight_path = list(sorted((OUTPUT_DIR/path).glob('*.pt')))[-1]  # latest weight
-        loaded_models[path]['config'] = config
-        loaded_models[path]['weight_path'] = weight_path
-        model = Model(loaded_models[path]['config']['model'])
-        model = model.load_state_dict(str(loaded_models[path]['weight_path'])).to(device)
-        model.eval()
-        loaded_models[path]['model'] = model
+    # load models
+    # [WARN]: this general_config contains some information not to use
+    loaded_models, general_config = load_models(predict_config)
     
     # check random_seed and train_valid_split
     assert sanity_check(loaded_models), 'The models you selected are invalid.'
     
     # set seed (not enough for complete reproducibility)
-    random_seed = loaded_models[model_paths[0]]['config']['general']['seed']
+    random_seed = general_config['general']['seed']
     random.seed(random_seed)  
     np.random.seed(random_seed)
     torch.manual_seed(random_seed)  
     torch.cuda.manual_seed(random_seed) 
-    
-    def worker_init_fn(worker_id):   
-        random.seed(worker_id+random_seed)   
-        np.random.seed(worker_id+random_seed) 
 
-    train_ids, valid_ids = train_valid_split(DATAFRAME, loaded_models[model_paths[0]]['config'])[0]
-    train_ids = train_ids[:10] if debug else train_ids
-    valid_ids = valid_ids[:2] if debug else valid_ids
-    train_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(train_ids), :]
-    valid_dataframe = DATAFRAME.loc[DATAFRAME['image_id'].isin(valid_ids), :]
-    train_dataset = GWDDataset(train_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=True, do_transform=False)
-    valid_dataset = GWDDataset(valid_dataframe, TRAIN_IMAGE_DIR, loaded_models[model_paths[0]]['config'], is_train=False, do_transform=False)
-    train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
-    valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
+    # get dataloader
+    train_data_loader, valid_data_loader = get_dataloader(general_config)
 
     # predict train and valid 
     # ensemble if you selected multiple models
     train_predicts, original_train_metrics, valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
 
-    # optimize postprocess
+    # optimize postprocessing
     postprocess_optimizer = PostProcessOptimizer(train_predicts, valid_predicts)
-    best_nms_threshold, best_nms_min_confidence = postprocess_optimizer.optimize_nms(n_calls=50)
-    best_soft_nms_sigma, best_soft_nms_min_confidence = postprocess_optimizer.optimize_soft_nms(n_calls=50)
-    best_wbf_threshold, best_wbf_min_confidence = postprocess_optimizer.optimize_wbf(n_calls=50)
-
-    nms_config = get_config(name='nms', threshold=best_nms_threshold, min_confidence=best_nms_min_confidence)
-    soft_nms_config = get_config(name='soft_nms', sigma=best_soft_nms_sigma, min_confidence=best_soft_nms_min_confidence)
-    wbf_config = get_config(name='wbf', threshold=best_wbf_threshold, min_confidence=best_wbf_min_confidence)
-    nms_train_predicts, nms_train_metrics, nms_valid_predicts, nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, nms_config)
-    soft_nms_train_predicts, soft_nms_train_metrics, soft_nms_valid_predicts, soft_nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, soft_nms_config)
-    wbf_train_predicts, wbf_train_metrics, wbf_valid_predicts, wbf_valid_metrics = apply_postprocess(train_predicts, valid_predicts, wbf_config)
+    optimize_postprocess(postprocess_optimizer)
+    # print(postprocess_optimizer.optimization_result)
     
-    print()
-    print('original train metrics: ', np.mean(original_train_metrics))
-    print('original valid metrics: ', np.mean(original_valid_metrics))
-
-    print()
-    print('nms best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['nms']['x']))
-    print('nms train metrics: ', np.mean(nms_train_metrics))
-    print('nms valid metrics: ', np.mean(nms_valid_metrics))
-    
-    print()
-    print('soft nms best params: sigma=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['soft_nms']['x']))
-    print('soft nms train metrics: ', np.mean(soft_nms_train_metrics))
-    print('soft nms valid metrics: ', np.mean(soft_nms_valid_metrics))
-
-    print()
-    print('wbf best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['wbf']['x']))
-    print('wbf train metrics: ', np.mean(wbf_train_metrics))
-    print('wbf valid metrics: ', np.mean(wbf_valid_metrics))
 
     # # ここでサンプル描画
     # images, targets, image_ids = iter(train_data_loader).next()
