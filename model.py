@@ -198,7 +198,7 @@ class Model:
 
     def load_state_dict(self, weights_path):
         self.model.load_state_dict(torch.load(weights_path))
-        return selfs
+        return self
 
     def _resize(self, images, targets):
         samples = [{
