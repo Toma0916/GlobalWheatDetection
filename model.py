@@ -47,6 +47,7 @@ import sklearn.metrics
 
 # --- albumentations ---
 import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 from albumentations.core.transforms_interface import DualTransform
 
 # --- EfficientDet ---
@@ -202,7 +203,7 @@ class Model:
             'labels': target['labels']
         } for image, target in zip(images, targets)]
         samples = [self.resize_transform(**sample) for sample in samples]
-        targets_resized = targets
+        targets_resized = list(targets)
         for i, (target, sample) in enumerate(zip(targets, samples)):
             target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
             targets_resized[i] = target
