@@ -1,0 +1,8 @@
+{
+    "debug": true,
+    "model_paths": [
+        "manhattan/exp_9",
+        "manhattan/exp_11",
+        "manhattan/exp_13"
+    ]
+}

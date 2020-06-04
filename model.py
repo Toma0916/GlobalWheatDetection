@@ -196,6 +196,10 @@ class Model:
     def state_dict(self):
         return self.model.state_dict()
 
+    def load_state_dict(self, weights_path):
+        self.model.load_state_dict(torch.load(weights_path))
+        return selfs
+
     def _resize(self, images, targets):
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
@@ -209,7 +213,7 @@ class Model:
             targets_resized[i] = target
         images_resized = [sample['image'] for sample in samples]
         return images_resized, targets_resized
-    
+
     def _resize_back(self, images, outputs):
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
