@@ -21,5 +21,13 @@
             "apply": true,
             "n_calls": 50
         }
+    },
+    "test_time_augmentation": {
+        "apply": true,
+        "augments": {
+            "hflip": true,
+            "vflip": true,
+            "vhflip": true
+        }
     }
 }
