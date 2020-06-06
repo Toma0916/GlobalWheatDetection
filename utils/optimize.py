@@ -65,7 +65,6 @@ class PostProcessOptimizer():
     
 
     def optimize_nms(self, n_calls=10):
-        print('optimizing nms...')
         space = [
             Real(0, 1, name='threshold'),
             Real(0, 1, name='min_confidence')
@@ -78,7 +77,6 @@ class PostProcessOptimizer():
         return best_params
     
     def optimize_soft_nms(self, n_calls=10):
-        print('optimizing soft nms...')
         space = [
             Real(0, 1, name='sigma'),
             Real(0, 1, name='min_confidence')
@@ -92,7 +90,6 @@ class PostProcessOptimizer():
     
     
     def optimize_wbf(self, n_calls=10):
-        print('optimizing wbf...')
         space = [
             Real(0, 1, name='threshold'),
             Real(0, 1, name='min_confidence')
