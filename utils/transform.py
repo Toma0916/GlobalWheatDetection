@@ -462,7 +462,6 @@ class Transform:
             A.RandomBrightness(**self.random_brightness),
             A.RandomContrast(**self.random_contrast),
             A.GaussNoise(**self.gauss_noise),
-            # A.Resize(height=self.img_size, width=self.img_size, p=1.0 if self.model_name=='efficient_det' else 0.0), # GPU will be OOM without this
             ToTensorV2(p=1.0)  # convert numpy image to tensor
             ], 
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
