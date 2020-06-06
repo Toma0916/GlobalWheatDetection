@@ -5,7 +5,9 @@
         "manhattan/exp_11",
         "manhattan/exp_13"
     ],
-    "pseudo_label": {},
+    "pseudo_label": {
+        "apply": true
+    },
     "optimize": {
         "nms": {
             "apply": true,

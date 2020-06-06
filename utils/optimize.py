@@ -38,16 +38,20 @@ from skopt.utils import use_named_args
 from skopt.plots import plot_objective, plot_evaluations, plot_convergence, plot_regret
 from skopt.space import Categorical, Integer, Real
 
+import mlflow
+
 from utils.postprocess import postprocessing
 from utils.metric import calculate_score_for_each
-from utils.functions import get_config
+from utils.functions import get_config, params_to_mlflow_format
 
 
 class PostProcessOptimizer():
 
-    def __init__(self, train_predicts, valid_predicts):
+    def __init__(self, train_predicts, train_metrics, valid_predicts, valid_metrics):
         self.train_predicts = copy.deepcopy(train_predicts)
+        self.train_metrics = copy.deepcopy(train_metrics)
         self.valid_predicts = copy.deepcopy(valid_predicts)
+        self.valid_metrics = copy.deepcopy(valid_metrics)
         self.optimization_result = {}
 
     def optimize(self, name, space, n_calls=10):
@@ -74,7 +78,13 @@ class PostProcessOptimizer():
 
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
-        return best_params
+        best_params_dict = {
+            'threshold': best_params[0],
+            'min_confidence': best_params[1]
+        }
+
+        self.optimization_result['nms']['best_params_dict'] = best_params_dict
+        return best_params_dict
     
     def optimize_soft_nms(self, n_calls=10):
         space = [
@@ -86,7 +96,13 @@ class PostProcessOptimizer():
 
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
-        return best_params
+        best_params_dict = {
+            'sigma': best_params[0],
+            'min_confidence': best_params[1]
+        }
+
+        self.optimization_result['soft_nms']['best_params_dict'] = best_params_dict
+        return best_params_dict
     
     
     def optimize_wbf(self, n_calls=10):
@@ -99,6 +115,52 @@ class PostProcessOptimizer():
         
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
-        return best_params    
+        best_params_dict = {
+            'threshold': best_params[0],
+            'min_confidence': best_params[1]
+        }
+
+        self.optimization_result['wbf']['best_params_dict'] = best_params_dict
+        return best_params_dict    
+
+    
+    def send(self, train_metrics, valid_metrics, method):
+        # import pdb; pdb.set_trace()
+        self.optimization_result[method]['train_metrics'] = train_metrics
+        self.optimization_result[method]['valid_metrics'] = valid_metrics
 
 
+    def log(self, predict_config, general_config):
+
+        # make log by mlflow                
+        mlflow.set_tracking_uri('./mlruns')
+        if not bool(mlflow.get_experiment_by_name('postprocessing')):
+            mlflow.create_experiment('postprocessing', artifact_location=None)
+        mlflow.set_experiment('postprocessing')
+        mlflow.start_run()
+
+        # log params
+        params = {
+            'debug': predict_config['debug'],
+            'random_seed': general_config['general']['seed'],
+            'train_valid_split': general_config['general']['train_valid_split']['name'],
+            'pseudo_label': predict_config['pseudo_label']['apply'],
+        }
+        mlflow.log_params(params)
+
+        # log used models as tags
+        mlflow.set_tags({model_path: True for model_path in predict_config['model_paths']})
+
+        # log metrics
+        mlflow.log_metrics({'metrics_original_train': self.train_metrics, 'metrics_original_valid': self.valid_metrics})
+        for method in ['nms', 'soft_nms', 'wbf']:
+            if method not in self.optimization_result.keys():
+                continue            
+            method_metrics_dict = {}
+            method_metrics_dict['metrics_%s_train' % method] = self.optimization_result[method]['train_metrics']
+            method_metrics_dict['metrics_%s_valid' % method] = self.optimization_result[method]['valid_metrics']
+            for key, value in self.optimization_result[method]['best_params_dict'].items():
+                method_metrics_dict['p_%s_%s' % (method, key)] = value
+            mlflow.log_metrics(method_metrics_dict)
+
+        mlflow.end_run()

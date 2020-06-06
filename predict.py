@@ -127,10 +127,12 @@ def predict_original(loaded_models, train_data_loader, valid_data_loader):
     print('predicting valid...')
     valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader)
 
+    mean_train_metrics = np.mean(train_metrics)
+    mean_valid_metrics = np.mean(valid_metrics)
     print()
-    print('original train metrics: ', np.mean(train_metrics))
-    print('original valid metrics: ', np.mean(valid_metrics))
-    return train_predicts, train_metrics, valid_predicts, valid_metrics
+    print('original train metrics: ', mean_train_metrics)
+    print('original valid metrics: ', mean_valid_metrics)
+    return train_predicts, mean_train_metrics, valid_predicts, mean_valid_metrics
     
     
 def apply_postprocess(train_predicts, valid_predicts, config):
@@ -207,46 +209,31 @@ def get_dataloader(general_config):
 
 def optimize_postprocess(postprocess_optimizer, predict_config=None):
 
-    # optimize postprocess
-    if predict_config['optimize']['nms']['apply']:
+    optimizer = {
+        'nms': postprocess_optimizer.optimize_nms,
+        'soft_nms': postprocess_optimizer.optimize_soft_nms,
+        'wbf': postprocess_optimizer.optimize_wbf
+    }
+
+
+    for method in optimizer.keys():
+        if not predict_config['optimize'][method]['apply']:
+            continue 
         
         print()
-        print('optimizing nms...')
+        print('optimizing %s...' % method)
 
-        best_nms_threshold, best_nms_min_confidence = postprocess_optimizer.optimize_nms(n_calls=predict_config['optimize']['nms']['n_calls'])
-        nms_config = get_config(name='nms', threshold=best_nms_threshold, min_confidence=best_nms_min_confidence)
-        nms_train_predicts, nms_train_metrics, nms_valid_predicts, nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, nms_config)
+        best_params_dict = optimizer[method](n_calls=predict_config['optimize'][method]['n_calls'])
+        config = get_config(name=method, **best_params_dict)
         
-        print('nms best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['nms']['x']))
-        print('nms train metrics: ', np.mean(nms_train_metrics))
-        print('nms valid metrics: ', np.mean(nms_valid_metrics))
+        opted_train_predicts, opted_train_metrics, opted_valid_predicts, opted_valid_metrics = apply_postprocess(postprocess_optimizer.train_predicts, postprocess_optimizer.valid_predicts, config)
+        mean_opted_train_metrics = np.mean(opted_train_metrics)
+        mean_opted_valid_metrics = np.mean(opted_valid_metrics)
+        postprocess_optimizer.send(mean_opted_train_metrics, mean_opted_valid_metrics, method)
+        print('%s best params: %s=%f, %s=%f' % (method, list(best_params_dict.keys())[0], list(best_params_dict.values())[0], list(best_params_dict.keys())[1], list(best_params_dict.values())[1]))
+        print('%s train metrics: %f' % (method, mean_opted_train_metrics))
+        print('%s valid metrics: %f' % (method, mean_opted_valid_metrics))
 
-    if predict_config['optimize']['soft_nms']['apply']:
-        
-        print()
-        print('optimizing soft nms...')
-
-        best_soft_nms_sigma, best_soft_nms_min_confidence = postprocess_optimizer.optimize_soft_nms(n_calls=predict_config['optimize']['soft_nms']['n_calls'])
-        soft_nms_config = get_config(name='soft_nms', sigma=best_soft_nms_sigma, min_confidence=best_soft_nms_min_confidence)
-        soft_nms_train_predicts, soft_nms_train_metrics, soft_nms_valid_predicts, soft_nms_valid_metrics = apply_postprocess(train_predicts, valid_predicts, soft_nms_config)
-
-        print('soft nms best params: sigma=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['soft_nms']['x']))
-        print('soft nms train metrics: ', np.mean(soft_nms_train_metrics))
-        print('soft nms valid metrics: ', np.mean(soft_nms_valid_metrics))
-
-    if predict_config['optimize']['wbf']['apply']:
-
-        print()
-        print('optimizing wbf...')
-
-        best_wbf_threshold, best_wbf_min_confidence = postprocess_optimizer.optimize_wbf(n_calls=predict_config['optimize']['wbf']['n_calls'])
-        wbf_config = get_config(name='wbf', threshold=best_wbf_threshold, min_confidence=best_wbf_min_confidence)
-        wbf_train_predicts, wbf_train_metrics, wbf_valid_predicts, wbf_valid_metrics = apply_postprocess(train_predicts, valid_predicts, wbf_config)
-
-        print('wbf best params: threshold=%f, min_confidence=%f' % tuple(postprocess_optimizer.optimization_result['wbf']['x']))
-        print('wbf train metrics: ', np.mean(wbf_train_metrics))
-        print('wbf valid metrics: ', np.mean(wbf_valid_metrics))
-        
 
 if __name__ == '__main__':
 
@@ -288,13 +275,15 @@ if __name__ == '__main__':
 
     # predict train and valid 
     # ensemble if you selected multiple models
-    train_predicts, original_train_metrics, valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
+    original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
 
     # optimize postprocessing
-    postprocess_optimizer = PostProcessOptimizer(train_predicts, valid_predicts)
+    postprocess_optimizer = PostProcessOptimizer(original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics)
     optimize_postprocess(postprocess_optimizer, predict_config=predict_config)
 
-    # print(postprocess_optimizer.optimization_result)
+    # log result
+    postprocess_optimizer.log(predict_config, general_config)
+
     
 
     # # ここでサンプル描画
