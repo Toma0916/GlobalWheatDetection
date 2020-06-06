@@ -53,6 +53,7 @@ import sklearn.metrics
 
 # --- albumentations ---
 import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
 from albumentations.core.transforms_interface import DualTransform
 
 # --- my modules ---
@@ -280,7 +281,7 @@ class TTAModel:
     def __call__(self, images, dummy_targets):
         ts_images, ts_dummy_targets = self._transform(images, dummy_targets)
         outputs, _ = self.model(ts_images, ts_dummy_targets)
-        outputs = [{k: v..data.cpu() for k, v in t.items()} for t in outputs]
+        outputs = [{k: v.data.cpu() for k, v in t.items()} for t in outputs]
         preds = self._transform_inv(images, outputs)
         return preds, {'loss': -1}
 
