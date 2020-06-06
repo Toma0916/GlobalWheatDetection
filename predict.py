@@ -17,6 +17,7 @@ from time import perf_counter
 import warnings
 import glob
 from collections import defaultdict
+import itertools
 
 
 import numpy as np 
@@ -182,9 +183,13 @@ def load_models(predict_config):
         model = Model(loaded_models[path]['config']['model'])
         model = model.load_state_dict(str(loaded_models[path]['weight_path'])).to(device)
         model.eval()
-        loaded_models[path]['model'] = model
+
+        # apply tta wrapper if needed
         if predict_config['test_time_augmentation']['apply']:
-            model = TTAModel(model, predict_config, device)
+            print('apply TTA to %s.' % path)
+            model = TTAModelWrapper(model, predict_config, device)
+
+        loaded_models[path]['model'] = model
 
     general_config = loaded_models[model_paths[0]]['config']
 
@@ -238,11 +243,12 @@ def optimize_postprocess(postprocess_optimizer, predict_config=None):
         print('%s valid metrics: %f' % (method, mean_opted_valid_metrics))
 
 
-class TTAModel:
+class TTAModelWrapper:
+
     def __init__(self, model, config, device):
+
         self.model = model
         self.device = device
-        # self.cpu_device = cpu_device
 
         transform_list = {
             'hflip': [A.HorizontalFlip(p=1), ToTensorV2(p=1)],
@@ -254,10 +260,7 @@ class TTAModel:
             'vflip': [A.VerticalFlip(p=1), ToTensorV2(p=1)],
             'vhflip': [A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)]      
         }
-        using_tf_list = []
-        for k, v in config['test_time_augmentation']['augments'].items():
-            if v:
-                using_tf_list.append(k)
+        using_tf_list = [k for k, v in config['test_time_augmentation']['augments'].items() if v]
 
         self.transforms = [
             A.Compose(transform_list[tf_name],
@@ -269,14 +272,6 @@ class TTAModel:
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}) for tf_name in using_tf_list
         ]
 
-        # self.transforms = [A.Compose([A.HorizontalFlip(p=0), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}),
-        #     A.Compose([A.HorizontalFlip(p=1), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}),
-        #     A.Compose([A.VerticalFlip(p=1), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}),
-        #     A.Compose([A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})]
-        # self.transforms_inv = [A.Compose([A.HorizontalFlip(p=0), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}),
-        #     A.Compose([A.HorizontalFlip(p=1), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}),
-        #     A.Compose([A.VerticalFlip(p=1), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}),
-        #     A.Compose([A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})]
     
     def __call__(self, images, dummy_targets):
         ts_images, ts_dummy_targets = self._transform(images, dummy_targets)
@@ -292,30 +287,31 @@ class TTAModel:
         """
         sample = {
             'image': images[0].permute(1, 2, 0).data.cpu().numpy(),
-            'bboxes': dummy_targets[0]['boxes'],
-            'labels': dummy_targets[0]['labels']
+            'bboxes': targets[0]['boxes'],
+            'labels': targets[0]['labels']
         }
         samples = [transform(**sample) for transform in self.transforms]
         ts_images = list(sample['image'].to(self.device) for sample in samples)
-        return ts_images, dummy_targets * len(ts_images)
+        return ts_images, targets * len(ts_images)
 
     def _transform_inv(self, images, outputs):
         samples = [
             {
-            'image':images[0].permute(1, 2, 0).data.cpu().numpy(),
-            'bboxes':output['boxes'],
-            'labels':[1 for _ in output['boxes']]
+            'image': images[0].permute(1, 2, 0).data.cpu().numpy(),
+            'bboxes': output['boxes'],
+            'labels': [1 for _ in output['boxes']]
             } for output in outputs
         ]
-        outputs = [t(**s) for t, s in zip(self.transforms_inv, samples)]
+
         boxes = []
-        scores = []
         labels = []
+        scores = list(itertools.chain.from_iterable([output['scores'].data.cpu().numpy() for output in outputs])) 
+
+        outputs = [transform(**sample) for transform, sample in zip(self.transforms_inv, samples)]
         for idx in range(len(outputs)):
             boxes += outputs[idx]['bboxes']
-            scores += outputs[idx]['scores'].data.cpu().numpy().tolist()
-            labels += [1 for _ in outputs[idx]['scores']]
-        return [{'boxes': torch.tensor(boxes), 'scores':torch.tensor(scores), 'labels':torch.tensor(labels)}]
+            labels += [1 for _ in outputs[idx]['bboxes']]
+        return [{'boxes': torch.tensor(boxes), 'scores': torch.tensor(scores), 'labels': torch.tensor(labels)}]
 
 
 if __name__ == '__main__':
