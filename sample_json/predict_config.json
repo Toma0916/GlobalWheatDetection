@@ -4,5 +4,20 @@
         "manhattan/exp_9",
         "manhattan/exp_11",
         "manhattan/exp_13"
-    ]
+    ],
+    "pseudo_label": {},
+    "optimize": {
+        "nms": {
+            "apply": true,
+            "n_calls": 50
+        },
+        "soft_nms": {
+            "apply": true,
+            "n_calls": 50
+        },
+        "wbf": {
+            "apply": true,
+            "n_calls": 50
+        }
+    }
 }
