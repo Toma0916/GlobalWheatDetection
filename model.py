@@ -159,19 +159,17 @@ class Model:
                 return preds, loss_dict
 
         elif self.model_name == 'efficient_det':
-           # resize images and boxes into self.image_size
+            # resize images and boxes into self.image_size
             images, targets = self._resize(images, targets)
             images = torch.stack(images).to(self.device).float()
-            boxes = [target['boxes'].to(self.device).float() for target in targets]
+            boxes = [target['boxes'][:, [1, 0, 3, 2]].to(self.device).float() for target in targets]
             labels = [target['labels'].to(self.device).float() for target in targets]
             if self.is_train:
                 loss, _, _ = self.model(images, boxes, labels)
                 return {'loss': loss}
             else:
                 outputs, (loss, _, _) = self.model(images, boxes, labels)
-                preds = [{'boxes': xywh2xyxy(res[:, :4]).clamp(min=0, max=self.image_size-1),
-                          'labels': res[:, 5],
-                          'scores': res[:, 4]} for res in outputs]
+                preds = self._preds_from_effdet_output(outputs)
                 
                 images, preds = self._resize_back(images, preds)
                 preds = [{k: v.cpu().detach() for k, v in pred.items()} for pred in preds]
@@ -200,6 +198,20 @@ class Model:
         self.model.load_state_dict(torch.load(weights_path))
         return self
 
+    def _preds_from_effdet_output(self, outputs):
+        preds = []
+        for i in range(outputs.shape[0]):
+            pred = ({
+                'boxes': xywh2xyxy(outputs[i, :, :4]).clamp(min=0, max=self.image_size-1),
+                'labels': outputs[i, :, 5],
+                'scores': outputs[i, :, 4]
+            })
+            pred['labels'] = pred['labels'][pred['boxes'].sum(axis=1)>0]
+            pred['scores'] = pred['scores'][pred['boxes'].sum(axis=1)>0]
+            pred['boxes'] = pred['boxes'][pred['boxes'].sum(axis=1)>0]
+            preds.append(pred)
+        return preds
+
     def _resize(self, images, targets):
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
@@ -209,7 +221,10 @@ class Model:
         samples = [self.resize_transform(**sample) for sample in samples]
         targets_resized = list(targets)
         for i, (target, sample) in enumerate(zip(targets, samples)):
-            target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            if len(sample['bboxes'])!=0:
+                target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            else:
+                target['boxes'] = torch.tensor([])
             targets_resized[i] = target
         images_resized = [sample['image'] for sample in samples]
         return images_resized, targets_resized
@@ -223,7 +238,10 @@ class Model:
         samples = [self.resize_back_transform (**sample) for sample in samples]
         outputs_resized = outputs
         for i, (output, sample) in enumerate(zip(outputs, samples)):
-            output['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            if len(sample['bboxes'])!=0:
+                output['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            else:
+                output['boxes'] = torch.tensor([])
             outputs_resized[i] = output
         images_resized = [sample['image'] for sample in samples]
         return images_resized, outputs_resized
