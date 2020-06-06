@@ -56,7 +56,7 @@ import albumentations as A
 from albumentations.core.transforms_interface import DualTransform
 
 # --- my modules ---
-from model import get_model, Model
+from model import Model
 from optimizer import get_optimizer
 from scheduler import get_scheduler
 
