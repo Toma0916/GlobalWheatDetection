@@ -45,9 +45,11 @@ from utils.functions import get_config
 
 class PostProcessOptimizer():
 
-    def __init__(self, train_predicts, valid_predicts):
+    def __init__(self, train_predicts, train_metrics, valid_predicts, valid_metrics):
         self.train_predicts = copy.deepcopy(train_predicts)
+        self.train_metrics = copy.deepcopy(train_metrics)
         self.valid_predicts = copy.deepcopy(valid_predicts)
+        self.valid_metrics = copy.deepcopy(valid_metrics)
         self.optimization_result = {}
 
     def optimize(self, name, space, n_calls=10):
@@ -74,7 +76,11 @@ class PostProcessOptimizer():
 
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
-        return best_params
+        best_params_dict = {
+            'threshold': best_params[0],
+            'min_confidence': best_params[1]
+        }
+        return best_params_dict
     
     def optimize_soft_nms(self, n_calls=10):
         space = [
@@ -86,7 +92,11 @@ class PostProcessOptimizer():
 
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
-        return best_params
+        best_params_dict = {
+            'sigma': best_params[0],
+            'min_confidence': best_params[1]
+        }
+        return best_params_dict
     
     
     def optimize_wbf(self, n_calls=10):
@@ -99,6 +109,20 @@ class PostProcessOptimizer():
         
         best_itr = np.argmin(opt_result.func_vals)
         best_params = opt_result.x_iters[best_itr]
-        return best_params    
+        best_params_dict = {
+            'threshold': best_params[0],
+            'min_confidence': best_params[1]
+        }
+        return best_params_dict    
+
+    
+    def send(self, train_metrics, valid_metrics, method):
+        # import pdb; pdb.set_trace()
+        self.optimization_result[method]['train_metrics'] = train_metrics
+        self.optimization_result[method]['valid_metrics'] = valid_metrics
+
+
+    def log(self, predict_config, general_config):
+        import pdb; pdb.set_trace()
 
 
