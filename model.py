@@ -124,9 +124,6 @@ class Model:
         self.device = None
         self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
 
-        # TODO: This is hardcoded 
-        self.image_scale = 1 
-
         # Used for efficientdet
         self.resize_transform = A.Compose([
             A.Resize(height=self.image_size, width=self.image_size, p=1.0 if self.model_name=='efficient_det' else 0.0), # GPU will be OOM without this
@@ -143,6 +140,7 @@ class Model:
 
 
     def __call__(self, images, targets=None):
+        images, targets = self._resize(images, targets)
         if self.model_name == 'faster_rcnn':
             images = list(image.float().to(self.device) for image in images)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
@@ -155,12 +153,12 @@ class Model:
 
                 self.model.eval()
                 preds = self.model(images, targets)
+                images, preds = self._resize_back(images, preds)
                 preds = [{k: v.cpu().detach() for k, v in pred.items()} for pred in preds]
                 return preds, loss_dict
 
         elif self.model_name == 'efficient_det':
             # resize images and boxes into self.image_size
-            images, targets = self._resize(images, targets)
             images = torch.stack(images).to(self.device).float()
             boxes = [target['boxes'][:, [1, 0, 3, 2]].to(self.device).float() for target in targets]
             labels = [target['labels'].to(self.device).float() for target in targets]
@@ -213,6 +211,9 @@ class Model:
         return preds
 
     def _resize(self, images, targets):
+        if images[0].shape[1:] == (self.image_size, self.image_size):
+            return images, targets
+
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
             'bboxes': target['boxes'],
@@ -230,6 +231,9 @@ class Model:
         return images_resized, targets_resized
 
     def _resize_back(self, images, outputs):
+        if images[0].shape[1:] == (self.image_size, self.image_size):
+            return images, outputs
+
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
             'bboxes': output['boxes'],
