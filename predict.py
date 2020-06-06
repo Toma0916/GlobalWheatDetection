@@ -127,10 +127,12 @@ def predict_original(loaded_models, train_data_loader, valid_data_loader):
     print('predicting valid...')
     valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader)
 
+    mean_train_metrics = np.mean(train_metrics)
+    mean_valid_metrics = np.mean(valid_metrics)
     print()
-    print('original train metrics: ', np.mean(train_metrics))
-    print('original valid metrics: ', np.mean(valid_metrics))
-    return train_predicts, train_metrics, valid_predicts, valid_metrics
+    print('original train metrics: ', mean_train_metrics)
+    print('original valid metrics: ', mean_valid_metrics)
+    return train_predicts, mean_train_metrics, valid_predicts, mean_valid_metrics
     
     
 def apply_postprocess(train_predicts, valid_predicts, config):
@@ -279,15 +281,9 @@ if __name__ == '__main__':
     postprocess_optimizer = PostProcessOptimizer(original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics)
     optimize_postprocess(postprocess_optimizer, predict_config=predict_config)
 
+    # log result
     postprocess_optimizer.log(predict_config, general_config)
 
-# 使ったモデル
-# 使ったoptimize
-# 
-
-
-
-    # print(postprocess_optimizer.optimization_result)
     
 
     # # ここでサンプル描画
