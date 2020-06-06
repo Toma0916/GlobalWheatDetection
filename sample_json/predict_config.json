@@ -1,9 +1,9 @@
 {
     "debug": true,
     "model_paths": [
-        "manhattan/exp_9",
-        "manhattan/exp_11",
-        "manhattan/exp_13"
+        "manhattan/exp_10",
+        "manhattan/exp_12",
+        "manhattan/exp_14"
     ],
     "pseudo_label": {
         "apply": true
