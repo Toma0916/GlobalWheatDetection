@@ -251,16 +251,18 @@ class TTAModelWrapper:
         self.device = device
 
         transform_list = {
+            'original': [A.HorizontalFlip(p=0), ToTensorV2(p=1)],  # set `HorizontalFlip` p=0, this is only for avoid error.
             'hflip': [A.HorizontalFlip(p=1), ToTensorV2(p=1)],
             'vflip': [A.VerticalFlip(p=1), ToTensorV2(p=1)],
             'vhflip': [A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)]      
         }
         transform_inv_list = {
+            'original': [A.HorizontalFlip(p=0), ToTensorV2(p=1)],
             'hflip': [A.HorizontalFlip(p=1), ToTensorV2(p=1)],
             'vflip': [A.VerticalFlip(p=1), ToTensorV2(p=1)],
             'vhflip': [A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)]      
         }
-        using_tf_list = [k for k, v in config['test_time_augmentation']['augments'].items() if v]
+        using_tf_list =[k for k, v in config['test_time_augmentation']['augments'].items() if v]
 
         self.transforms = [
             A.Compose(transform_list[tf_name],
