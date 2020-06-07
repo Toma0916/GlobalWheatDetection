@@ -96,9 +96,10 @@ def sanity_check(loaded_models):
 
 
 # load model and predict
-def predict_original_for_loader(loaded_models, dataloader):
+def predict_original_for_loader(loaded_models, dataloader, config):
     
     predicts = defaultdict(lambda: {'original': defaultdict(dict), 'target': defaultdict(dict), 'processed': defaultdict(dict)})
+    predicts_each = defaultdict()
     metrics = []
 
     for i, key in enumerate(loaded_models.keys()):
@@ -109,25 +110,58 @@ def predict_original_for_loader(loaded_models, dataloader):
             preds, _ = model(images, targets)
             metrics.append(calculate_score_for_each(preds, targets))
 
-            if 'boxes' not in predicts[image_id]['original']:
-                predicts[image_id]['original']['boxes'] = preds[0]['boxes']
-                predicts[image_id]['original']['scores'] = preds[0]['scores']
+            if i == 0:
                 predicts[image_id]['target']['boxes'] = targets[0]['boxes']
+                predicts_each[image_id] = defaultdict(dict)
+               
+            predicts_each[image_id][key]['boxes'] = preds[0]['boxes']
+            predicts_each[image_id][key]['scores'] = preds[0]['scores']
+    
+    for image_id, d in predicts_each.items():
+        idx = 0
+        all_empty = False
+        while not all_empty:
+            top_scores = []
+            top_boxes = []
+            for key in predicts_each[image_id].keys():
+                if d[key]['scores'].shape[0] <= idx:
+                    continue            
+                top_scores.append(d[key]['scores'][idx])
+                top_boxes.append(d[key]['boxes'][idx, :])  
+
+            if len(top_scores) == 0:
+                all_empty = True
+                continue      
+
+            top_scores = np.array(top_scores)
+            top_boxes = np.array(top_boxes)
+            top_sorted_idx = np.argsort(top_scores)[::-1]
+            top_boxes = top_boxes[top_sorted_idx, :]
+            top_scores = top_scores[top_sorted_idx]
+            
+            if 'boxes' not in predicts[image_id]['original']:
+                predicts[image_id]['original']['boxes'] = top_boxes
+                predicts[image_id]['original']['scores'] = top_scores
             else:
-                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], preds[0]['boxes']], axis=0)
-                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], preds[0]['scores']], axis=0)
+                if config['apply']:
+                    keeped_top_score = predicts[image_id]['original']['scores'][-1]
+                    top_scores -= np.max([0.0, (top_scores[0] - keeped_top_score + config['subtraction'])])
+                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], top_boxes], axis=0)
+                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], top_scores], axis=0)
                 sorted_idx = np.argsort(predicts[image_id]['original']['scores'])[::-1]
                 predicts[image_id]['original']['boxes'] = predicts[image_id]['original']['boxes'][sorted_idx, :]
-                predicts[image_id]['original']['scores'] = predicts[image_id]['original']['scores'][sorted_idx]
+                predicts[image_id]['original']['scores'] = predicts[image_id]['original']['scores'][sorted_idx]                        
+            idx += 1
+        
     return predicts, np.array(metrics)
     
 
-def predict_original(loaded_models, train_data_loader, valid_data_loader):
+def predict_original(loaded_models, train_data_loader, valid_data_loader, config):
 
     print('predicting train...')
-    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader)
+    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader, config)
     print('predicting valid...')
-    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader)
+    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader, config)
 
     mean_train_metrics = np.mean(train_metrics)
     mean_valid_metrics = np.mean(valid_metrics)
@@ -356,7 +390,7 @@ if __name__ == '__main__':
 
     # predict train and valid 
     # ensemble if you selected multiple models
-    original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
+    original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader, predict_config["predict_normalization"])
 
     # optimize postprocessing
     postprocess_optimizer = PostProcessOptimizer(original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics)
