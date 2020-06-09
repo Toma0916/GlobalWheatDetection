@@ -1,10 +1,14 @@
 {
     "debug": true,
     "model_paths": [
-        "manhattan/exp_10",
-        "manhattan/exp_12",
-        "manhattan/exp_14"
+        "manhattan/exp_9",
+        "manhattan/exp_11",
+        "manhattan/exp_13"
     ],
+    "predict_normalization": {
+        "apply": false,
+        "subtraction": 0.005
+    },
     "pseudo_label": {
         "apply": true
     },
@@ -23,8 +27,9 @@
         }
     },
     "test_time_augmentation": {
-        "apply": true,
+        "apply": false,
         "augments": {
+            "original": true,
             "hflip": true,
             "vflip": true,
             "vhflip": true
