@@ -1,0 +1,163 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "mnhtn_exp13/exp04",
+        "experiment_name": "manhattan",
+        "seed": 42,
+        "model_save_interval": 25,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        },
+        "train_valid_split": {
+            "name": "source",
+            "config": {
+                "valid_sources": [
+                    "arvalis_2"
+                ]
+            }
+        },
+        "kfold": -1,
+        "prefix": "gn"
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 7,
+            "class_num": 2,
+            "pretrained": true
+        },
+        "prefix": "md"
+    },
+    "train": {
+        "batch_size": 10,
+        "epochs": 51,
+        "random_annotation": {
+            "drop": {
+                "p": 0.005
+            },
+            "vibration": {
+                "max_ratio": 0.1
+            }
+        },
+        "optimizer": {
+            "name": "adamw",
+            "config": {
+                "lr": 0.0002
+            }
+        },
+        "scheduler": {
+            "name": "ReduceLROnPlateau",
+            "config": {
+                "mode": "min",
+                "factor": 0.5,
+                "patience": 1,
+                "verbose": false,
+                "threshold": 0.0001,
+                "threshold_mode": "abs",
+                "cooldown": 0,
+                "min_lr": 1e-08,
+                "eps": 1e-08
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5
+            },
+            "mosaic": {
+                "p": 0.5
+            },
+            "blur": {
+                "p": 0.5
+            },
+            "test_time_augment": false,
+            "prefix": "ag",
+            "motion_blur": {
+                "p": 0.0
+            },
+            "median_blur": {
+                "p": 0.0
+            },
+            "gaussian_blur": {
+                "p": 0.0
+            },
+            "optical_distortion": {
+                "p": 0.0
+            },
+            "grid_distortion": {
+                "p": 0.0
+            },
+            "elastic_transform": {
+                "p": 0.0
+            },
+            "clahe": {
+                "p": 0.0
+            },
+            "channel_shuffle": {
+                "p": 0.0
+            },
+            "random_gamma": {
+                "p": 0.0
+            },
+            "rgb_shift": {
+                "p": 0.0
+            },
+            "random_sized_bbox_safe_crop": {
+                "p": 0.0,
+                "height": 1024,
+                "width": 1024
+            },
+            "gauss_noise": {
+                "p": 0.0
+            },
+            "cutout": {
+                "p": 0.0
+            },
+            "custom_cutout": {
+                "p": 0.0
+            },
+            "cutmix": {
+                "p": 0.0
+            },
+            "mixup": {
+                "p": 0.0
+            }
+        },
+        "prefix": "tr",
+        "sampler": {
+            "name": "",
+            "config": {}
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.1
+        },
+        "post_processor": {
+            "name": "soft_nms",
+            "config": {
+                "sigma": 0.1
+            }
+        },
+        "prefix": "vl"
+    }
+}
