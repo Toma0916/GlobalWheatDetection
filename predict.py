@@ -71,6 +71,7 @@ from utils.postprocess import postprocessing
 from utils.optimize import PostProcessOptimizer
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
+from utils.pseudo_labeling import prepare_pseudo_labels
 
 warnings.simplefilter('ignore')  # 基本warningオフにしたい
 
@@ -387,6 +388,9 @@ if __name__ == '__main__':
 
     # get dataloader
     train_data_loader, valid_data_loader = get_dataloader(general_config)
+
+    # pseudo label training
+    loaded_models = prepare_pseudo_labels(loaded_models, valid_data_loader, predict_config['pseudo_label'])
 
     # predict train and valid 
     # ensemble if you selected multiple models
