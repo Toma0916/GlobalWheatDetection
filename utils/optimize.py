@@ -125,7 +125,6 @@ class PostProcessOptimizer():
 
     
     def send(self, train_metrics, valid_metrics, method):
-        # import pdb; pdb.set_trace()
         self.optimization_result[method]['train_metrics'] = train_metrics
         self.optimization_result[method]['valid_metrics'] = valid_metrics
 
