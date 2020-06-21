@@ -71,6 +71,7 @@ from utils.postprocess import postprocessing
 from utils.optimize import PostProcessOptimizer
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
+from utils.pseudo_labeling import prepare_pseudo_labels, retrain_with_pseudo_label
 
 warnings.simplefilter('ignore')  # 基本warningオフにしたい
 
@@ -96,44 +97,78 @@ def sanity_check(loaded_models):
 
 
 # load model and predict
-def predict_original_for_loader(loaded_models, dataloader):
+def predict_original_for_loader(loaded_models, dataloader, config, is_pseudo):
     
     predicts = defaultdict(lambda: {'original': defaultdict(dict), 'target': defaultdict(dict), 'processed': defaultdict(dict)})
+    predicts_each = defaultdict()
     metrics = []
 
     for i, key in enumerate(loaded_models.keys()):
         print('【%d/%d】' % (i+1, len(loaded_models.keys())))
-        model = loaded_models[key]['model']
+        model = loaded_models[key]['pseudo_model' if is_pseudo else 'model']
         for images, targets, image_ids in tqdm.tqdm(dataloader):
             image_id = image_ids[0]
             preds, _ = model(images, targets)
             metrics.append(calculate_score_for_each(preds, targets))
 
-            if 'boxes' not in predicts[image_id]['original']:
-                predicts[image_id]['original']['boxes'] = preds[0]['boxes']
-                predicts[image_id]['original']['scores'] = preds[0]['scores']
+            if i == 0:
                 predicts[image_id]['target']['boxes'] = targets[0]['boxes']
+                predicts_each[image_id] = defaultdict(dict)
+               
+            predicts_each[image_id][key]['boxes'] = preds[0]['boxes']
+            predicts_each[image_id][key]['scores'] = preds[0]['scores']
+    
+    for image_id, d in predicts_each.items():
+        idx = 0
+        all_empty = False
+        while not all_empty:
+            top_scores = []
+            top_boxes = []
+            for key in predicts_each[image_id].keys():
+                if d[key]['scores'].shape[0] <= idx:
+                    continue            
+                top_scores.append(d[key]['scores'][idx])
+                top_boxes.append(d[key]['boxes'][idx, :])  
+
+            if len(top_scores) == 0:
+                all_empty = True
+                continue      
+
+            top_scores = np.array(top_scores)
+            top_boxes = np.array(top_boxes)
+            top_sorted_idx = np.argsort(top_scores)[::-1]
+            top_boxes = top_boxes[top_sorted_idx, :]
+            top_scores = top_scores[top_sorted_idx]
+            
+            if 'boxes' not in predicts[image_id]['original']:
+                predicts[image_id]['original']['boxes'] = top_boxes
+                predicts[image_id]['original']['scores'] = top_scores
             else:
-                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], preds[0]['boxes']], axis=0)
-                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], preds[0]['scores']], axis=0)
+                if config['apply']:
+                    keeped_top_score = predicts[image_id]['original']['scores'][-1]
+                    top_scores -= np.max([0.0, (top_scores[0] - keeped_top_score + config['subtraction'])])
+                predicts[image_id]['original']['boxes'] = np.concatenate([predicts[image_id]['original']['boxes'], top_boxes], axis=0)
+                predicts[image_id]['original']['scores'] = np.concatenate([predicts[image_id]['original']['scores'], top_scores], axis=0)
                 sorted_idx = np.argsort(predicts[image_id]['original']['scores'])[::-1]
                 predicts[image_id]['original']['boxes'] = predicts[image_id]['original']['boxes'][sorted_idx, :]
-                predicts[image_id]['original']['scores'] = predicts[image_id]['original']['scores'][sorted_idx]
+                predicts[image_id]['original']['scores'] = predicts[image_id]['original']['scores'][sorted_idx]                        
+            idx += 1
+        
     return predicts, np.array(metrics)
     
 
-def predict_original(loaded_models, train_data_loader, valid_data_loader):
+def predict_original(loaded_models, train_data_loader, valid_data_loader, config, is_pseudo=False):
 
     print('predicting train...')
-    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader)
+    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader, config, is_pseudo)
     print('predicting valid...')
-    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader)
+    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader, config, is_pseudo)
 
     mean_train_metrics = np.mean(train_metrics)
     mean_valid_metrics = np.mean(valid_metrics)
     print()
-    print('original train metrics: ', mean_train_metrics)
-    print('original valid metrics: ', mean_valid_metrics)
+    print('%s train metrics: ' % ('pseudo' if is_pseudo else 'original'), mean_train_metrics)
+    print('%s valid metrics: ' % ('pseudo' if is_pseudo else 'original'), mean_valid_metrics)
     return train_predicts, mean_train_metrics, valid_predicts, mean_valid_metrics
 
     
@@ -212,7 +247,7 @@ def get_dataloader(general_config):
     train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
     valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
-    return train_data_loader, valid_data_loader
+    return train_ids, train_data_loader, valid_ids, valid_data_loader
 
 
 def optimize_postprocess(postprocess_optimizer, predict_config=None):
@@ -251,16 +286,18 @@ class TTAModelWrapper:
         self.device = device
 
         transform_list = {
+            'original': [A.HorizontalFlip(p=0), ToTensorV2(p=1)],  # set `HorizontalFlip` p=0, this is only for avoid error.
             'hflip': [A.HorizontalFlip(p=1), ToTensorV2(p=1)],
             'vflip': [A.VerticalFlip(p=1), ToTensorV2(p=1)],
             'vhflip': [A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)]      
         }
         transform_inv_list = {
+            'original': [A.HorizontalFlip(p=0), ToTensorV2(p=1)],
             'hflip': [A.HorizontalFlip(p=1), ToTensorV2(p=1)],
             'vflip': [A.VerticalFlip(p=1), ToTensorV2(p=1)],
             'vhflip': [A.HorizontalFlip(p=1), A.VerticalFlip(p=1), ToTensorV2(p=1)]      
         }
-        using_tf_list = [k for k, v in config['test_time_augmentation']['augments'].items() if v]
+        using_tf_list =[k for k, v in config['test_time_augmentation']['augments'].items() if v]
 
         self.transforms = [
             A.Compose(transform_list[tf_name],
@@ -350,14 +387,21 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(random_seed) 
 
     # get dataloader
-    train_data_loader, valid_data_loader = get_dataloader(general_config)
+    train_ids, train_data_loader, valid_ids, valid_data_loader = get_dataloader(general_config)
+
+    # pseudo label training
+    prepare_pseudo_labels(loaded_models, valid_data_loader, predict_config['pseudo_label'])
+    retrain_with_pseudo_label(loaded_models, train_ids, valid_ids, TRAIN_IMAGE_DIR, DATAFRAME, predict_config['pseudo_label'])
 
     # predict train and valid 
     # ensemble if you selected multiple models
-    original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader)
+    train_predicts, train_metrics, valid_predicts, valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader, predict_config["predict_normalization"])
+    if predict_config['pseudo_label']['apply']:
+        del train_predicts, train_metrics, valid_predicts, valid_metrics 
+        train_predicts,  train_metrics,  valid_predicts, valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader, predict_config["predict_normalization"], is_pseudo=True)
 
     # optimize postprocessing
-    postprocess_optimizer = PostProcessOptimizer(original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics)
+    postprocess_optimizer = PostProcessOptimizer(train_predicts, train_metrics, valid_predicts, valid_metrics)
     optimize_postprocess(postprocess_optimizer, predict_config=predict_config)
 
     # log result
@@ -410,6 +454,5 @@ if __name__ == '__main__':
     #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
     # cv2.imwrite('./sample2.png', image)
 
-    # import pdb; pdb.set_trace()
 
 
