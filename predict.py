@@ -71,6 +71,7 @@ from utils.postprocess import postprocessing
 from utils.optimize import PostProcessOptimizer
 from utils.sampler import get_sampler
 from utils.train_valid_split import train_valid_split
+from utils.pseudo_labeling import prepare_pseudo_labels, retrain_with_pseudo_label
 
 warnings.simplefilter('ignore')  # 基本warningオフにしたい
 
@@ -96,7 +97,7 @@ def sanity_check(loaded_models):
 
 
 # load model and predict
-def predict_original_for_loader(loaded_models, dataloader, config):
+def predict_original_for_loader(loaded_models, dataloader, config, is_pseudo):
     
     predicts = defaultdict(lambda: {'original': defaultdict(dict), 'target': defaultdict(dict), 'processed': defaultdict(dict)})
     predicts_each = defaultdict()
@@ -104,7 +105,7 @@ def predict_original_for_loader(loaded_models, dataloader, config):
 
     for i, key in enumerate(loaded_models.keys()):
         print('【%d/%d】' % (i+1, len(loaded_models.keys())))
-        model = loaded_models[key]['model']
+        model = loaded_models[key]['pseudo_model' if is_pseudo else 'model']
         for images, targets, image_ids in tqdm.tqdm(dataloader):
             image_id = image_ids[0]
             preds, _ = model(images, targets)
@@ -156,18 +157,18 @@ def predict_original_for_loader(loaded_models, dataloader, config):
     return predicts, np.array(metrics)
     
 
-def predict_original(loaded_models, train_data_loader, valid_data_loader, config):
+def predict_original(loaded_models, train_data_loader, valid_data_loader, config, is_pseudo=False):
 
     print('predicting train...')
-    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader, config)
+    train_predicts, train_metrics = predict_original_for_loader(loaded_models, train_data_loader, config, is_pseudo)
     print('predicting valid...')
-    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader, config)
+    valid_predicts, valid_metrics = predict_original_for_loader(loaded_models, valid_data_loader, config, is_pseudo)
 
     mean_train_metrics = np.mean(train_metrics)
     mean_valid_metrics = np.mean(valid_metrics)
     print()
-    print('original train metrics: ', mean_train_metrics)
-    print('original valid metrics: ', mean_valid_metrics)
+    print('%s train metrics: ' % ('pseudo' if is_pseudo else 'original'), mean_train_metrics)
+    print('%s valid metrics: ' % ('pseudo' if is_pseudo else 'original'), mean_valid_metrics)
     return train_predicts, mean_train_metrics, valid_predicts, mean_valid_metrics
 
     
@@ -246,7 +247,7 @@ def get_dataloader(general_config):
     train_data_loader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)    
     valid_data_loader = DataLoader(valid_dataset, batch_size=1, shuffle=True, num_workers=0, worker_init_fn=worker_init_fn, collate_fn=collate_fn)
 
-    return train_data_loader, valid_data_loader
+    return train_ids, train_data_loader, valid_ids, valid_data_loader
 
 
 def optimize_postprocess(postprocess_optimizer, predict_config=None):
@@ -386,14 +387,21 @@ if __name__ == '__main__':
     torch.cuda.manual_seed(random_seed) 
 
     # get dataloader
-    train_data_loader, valid_data_loader = get_dataloader(general_config)
+    train_ids, train_data_loader, valid_ids, valid_data_loader = get_dataloader(general_config)
+
+    # pseudo label training
+    prepare_pseudo_labels(loaded_models, valid_data_loader, predict_config['pseudo_label'])
+    retrain_with_pseudo_label(loaded_models, train_ids, valid_ids, TRAIN_IMAGE_DIR, DATAFRAME, predict_config['pseudo_label'])
 
     # predict train and valid 
     # ensemble if you selected multiple models
-    original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader, predict_config["predict_normalization"])
+    train_predicts, train_metrics, valid_predicts, valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader, predict_config["predict_normalization"])
+    if predict_config['pseudo_label']['apply']:
+        del train_predicts, train_metrics, valid_predicts, valid_metrics 
+        train_predicts,  train_metrics,  valid_predicts, valid_metrics = predict_original(loaded_models, train_data_loader, valid_data_loader, predict_config["predict_normalization"], is_pseudo=True)
 
     # optimize postprocessing
-    postprocess_optimizer = PostProcessOptimizer(original_train_predicts, original_train_metrics, original_valid_predicts, original_valid_metrics)
+    postprocess_optimizer = PostProcessOptimizer(train_predicts, train_metrics, valid_predicts, valid_metrics)
     optimize_postprocess(postprocess_optimizer, predict_config=predict_config)
 
     # log result
@@ -446,6 +454,5 @@ if __name__ == '__main__':
     #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (0, 220, 0), 3)
     # cv2.imwrite('./sample2.png', image)
 
-    # import pdb; pdb.set_trace()
 
 

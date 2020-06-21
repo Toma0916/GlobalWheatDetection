@@ -1,16 +1,17 @@
 {
-    "debug": true,
+    "debug": false,
     "model_paths": [
         "manhattan/exp_9",
-        "manhattan/exp_11",
-        "manhattan/exp_13"
+        "manhattan/exp_11"
     ],
     "predict_normalization": {
-        "apply": false,
+        "apply": true,
         "subtraction": 0.005
     },
     "pseudo_label": {
-        "apply": true
+        "apply": true,
+        "detection_threshold": 0.5,
+        "epochs": 5
     },
     "optimize": {
         "nms": {
@@ -18,11 +19,11 @@
             "n_calls": 50
         },
         "soft_nms": {
-            "apply": true,
+            "apply": false,
             "n_calls": 50
         },
         "wbf": {
-            "apply": true,
+            "apply": false,
             "n_calls": 50
         }
     },
