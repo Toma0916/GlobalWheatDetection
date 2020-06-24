@@ -67,7 +67,8 @@ def get_filtered_bboxes(target, threshold, max_or_min):
                        'labels': target['labels'][filtered],
                        'area': target['area'][filtered],
                        'iscrowd': target['iscrowd'][filtered],
-                       'image_id': target['image_id']}
+                       'image_id': target['image_id'],
+                       'source': target['source']}
     return target_filtered
 
 

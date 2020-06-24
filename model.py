@@ -148,7 +148,7 @@ class Model:
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             if self.is_train:
                 loss, pooled_features = self.model(images, targets)
-                rtn = self.dl_calculator(pooled_features)
+                loss['loss_domain'] = 1.0 * self.dl_calculator(pooled_features, targets)
                 return loss
             else:
                 self.model.train()
@@ -266,7 +266,7 @@ class DomainLossCalculator(nn.Module):
             'arvalis_3': 4,
             'rres_1': 5,
             'arvalis_2': 6
-        }
+    }
     train_domain_num = len(sources_label_map.keys())
 
     def __init__(self):
@@ -280,9 +280,11 @@ class DomainLossCalculator(nn.Module):
         self.domain_classifier.add_module('d_fc2', nn.Linear(128, self.train_domain_num))
 
 
-    def forward(self, features):
-        domain_output = self.domain_classifier(self.spacial_average_pooling_2d(features))
-        return domain_output
+    def forward(self, features, targets):
+        domain_output = self.domain_classifier(self.spacial_average_pooling_2d(features))    
+        source_labels = torch.cat([target['source'] for target in targets])
+        loss = nn.CrossEntropyLoss()(domain_output, source_labels) * (-1)  # DANNのための反転させる
+        return loss
     
 
     def spacial_average_pooling_2d(self, features):

@@ -122,6 +122,16 @@ class GWDDataset(DatasetMixin):
 
         dff = self.df[['image_id', 'source']].drop_duplicates()
         self.sources = dict(zip(dff.image_id, dff.source))
+
+        self.sources_label_map = {
+            'usask_1': 0,
+            'arvalis_1': 1,
+            'inrae_1': 2,
+            'ethz_1': 3,
+            'arvalis_3': 4,
+            'rres_1': 5,
+            'arvalis_2': 6
+        }
      
     def __len__(self):
         """return length of this dataset"""
@@ -134,7 +144,6 @@ class GWDDataset(DatasetMixin):
 
         image_id = self.image_ids[self.indices[i]]
         records = self.df[self.df['image_id'] == image_id]
-
         image = cv2.imread(str(self.image_dir/('%s.jpg' % image_id)), cv2.IMREAD_COLOR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
         image /= 255.0
@@ -152,6 +161,7 @@ class GWDDataset(DatasetMixin):
 
         labels = torch.ones((boxes.shape[0],), dtype=torch.int64)  # only one class (background or wheet)        
         iscrowd = torch.zeros((boxes.shape[0],), dtype=torch.int64)  # suppose all instances are not crowd
+        source = str(records[['source']].values[0][0])
 
         target = {}
         target['boxes'] = boxes
@@ -159,6 +169,7 @@ class GWDDataset(DatasetMixin):
         target['image_id'] = torch.tensor([self.indices[i]])
         target['area'] = area
         target['iscrowd'] = iscrowd
+        target['source'] = torch.tensor([self.sources_label_map[source]])
 
         if not 'valid' in self.config.keys():
             self.config['valid'] = {'apply_bbox_filter': False}
