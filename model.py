@@ -145,7 +145,7 @@ class Model:
             images = list(image.float().to(self.device) for image in images)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             if self.is_train:
-                loss = self.model(images, targets)
+                loss, pooled_features = self.model(images, targets)
                 return loss
             else:
                 self.model.train()
