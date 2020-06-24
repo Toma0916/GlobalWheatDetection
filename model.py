@@ -138,6 +138,8 @@ class Model:
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
         )
 
+        self.dl_calculator = DomainLossCalculator()
+
 
     def __call__(self, images, targets=None):
         images, targets = self._resize(images, targets)
@@ -146,6 +148,7 @@ class Model:
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             if self.is_train:
                 loss, pooled_features = self.model(images, targets)
+                rtn = self.dl_calculator(pooled_features)
                 return loss
             else:
                 self.model.train()
@@ -175,6 +178,7 @@ class Model:
 
     def to(self, device):
         self.model.to(device)
+        self.dl_calculator.to(device)
         self.device = device
         return self
 
@@ -249,3 +253,46 @@ class Model:
             outputs_resized[i] = output
         images_resized = [sample['image'] for sample in samples]
         return images_resized, outputs_resized
+
+
+
+class DomainLossCalculator(nn.Module):
+
+    sources_label_map = {
+            'usask_1': 0,
+            'arvalis_1': 1,
+            'inrae_1': 2,
+            'ethz_1': 3,
+            'arvalis_3': 4,
+            'rres_1': 5,
+            'arvalis_2': 6
+        }
+    train_domain_num = len(sources_label_map.keys())
+
+    def __init__(self):
+        
+        super(DomainLossCalculator, self).__init__()
+        
+        self.domain_classifier = nn.Sequential()
+        self.domain_classifier.add_module('d_fc1', nn.Linear(256, 128))  # モデルの構造によってはエラー吐くかも
+        self.domain_classifier.add_module('d_bn1', nn.BatchNorm1d(128))
+        self.domain_classifier.add_module('d_relu1', nn.ReLU(True))
+        self.domain_classifier.add_module('d_fc2', nn.Linear(128, self.train_domain_num))
+
+
+    def forward(self, features):
+        domain_output = self.domain_classifier(self.spacial_average_pooling_2d(features))
+        return domain_output
+    
+
+    def spacial_average_pooling_2d(self, features):
+        features = torch.mean(features, axis=2)
+        features = torch.mean(features, axis=2)
+        return features
+
+
+
+
+
+
+
