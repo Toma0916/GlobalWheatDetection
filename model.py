@@ -152,7 +152,8 @@ class Model:
                 return loss
             else:
                 self.model.train()
-                loss_dict = self.model(images, targets)
+                loss_dict, pooled_features = self.model(images, targets)
+                loss_dict['loss_domain'] = 1.0 * self.dl_calculator(pooled_features, targets)
 
                 self.model.eval()
                 preds = self.model(images, targets)
@@ -184,10 +185,12 @@ class Model:
 
     def eval(self):
         self.model.eval()
+        self.dl_calculator.eval()
         self.is_train = False
 
     def train(self):
         self.model.train()
+        self.dl_calculator.train()
         self.is_train = True
 
     def parameters(self):
