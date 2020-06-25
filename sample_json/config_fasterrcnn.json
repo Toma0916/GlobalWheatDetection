@@ -28,7 +28,8 @@
             "pool_layers_num": 4,
             "pooled_size": 7,
             "class_num": 2,
-            "pretrained": true
+            "pretrained": true,
+            "domain_loss_coefficient": 1.0
         }
     },
     "train": {

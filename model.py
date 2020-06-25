@@ -123,6 +123,7 @@ class Model:
         self.is_train = True
         self.device = None
         self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
+        self.domain_loss_coefficient = 0.0 if ('domain_loss_coefficient' not in config['config']) else config['config']['domain_loss_coefficient']  # now, used in only faster rcnn
 
         # Used for efficientdet
         self.resize_transform = A.Compose([
@@ -148,12 +149,12 @@ class Model:
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             if self.is_train:
                 loss, pooled_features = self.model(images, targets)
-                loss['loss_domain'] = 1.0 * self.dl_calculator(pooled_features, targets)
+                loss['loss_domain'] = self.domain_loss_coefficient * self.dl_calculator(pooled_features, targets)
                 return loss
             else:
                 self.model.train()
                 loss_dict, pooled_features = self.model(images, targets)
-                loss_dict['loss_domain'] = 1.0 * self.dl_calculator(pooled_features, targets)
+                loss_dict['loss_domain'] = self.domain_loss_coefficient * self.dl_calculator(pooled_features, targets)
 
                 self.model.eval()
                 preds = self.model(images, targets)
@@ -260,6 +261,10 @@ class Model:
 
 
 class DomainLossCalculator(nn.Module):
+    """
+    Implementaion of Idea of DANN
+    predict source domain of image by using top feature of backbone
+    """
 
     sources_label_map = {
             'usask_1': 0,
@@ -277,7 +282,7 @@ class DomainLossCalculator(nn.Module):
         super(DomainLossCalculator, self).__init__()
         
         self.domain_classifier = nn.Sequential()
-        self.domain_classifier.add_module('d_fc1', nn.Linear(256, 128))  # モデルの構造によってはエラー吐くかも
+        self.domain_classifier.add_module('d_fc1', nn.Linear(256, 128))  # [warn]: `256` maybe give an error when using non default model
         self.domain_classifier.add_module('d_bn1', nn.BatchNorm1d(128))
         self.domain_classifier.add_module('d_relu1', nn.ReLU(True))
         self.domain_classifier.add_module('d_fc2', nn.Linear(128, self.train_domain_num))
@@ -286,11 +291,14 @@ class DomainLossCalculator(nn.Module):
     def forward(self, features, targets):
         domain_output = self.domain_classifier(self.spacial_average_pooling_2d(features))    
         source_labels = torch.cat([target['source'] for target in targets])
-        loss = nn.CrossEntropyLoss()(domain_output, source_labels) * (-1)  # DANNのための反転させる
+        loss = nn.CrossEntropyLoss()(domain_output, source_labels) * (-1)  # reverse value because we intends model not to learn domain classification
         return loss
     
 
     def spacial_average_pooling_2d(self, features):
+        """
+        simple average pooling 
+        """
         features = torch.mean(features, axis=2)
         features = torch.mean(features, axis=2)
         return features
