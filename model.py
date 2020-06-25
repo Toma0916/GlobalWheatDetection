@@ -123,7 +123,7 @@ class Model:
         self.is_train = True
         self.device = None
         self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
-        self.domain_loss_coefficient = 0.0 if ('domain_loss_coefficient' not in config['config']) else config['config']['domain_loss_coefficient']  # now, used in only faster rcnn
+        self.domain_loss_coefficient = 0.0 if ('domain_loss_coefficient' not in config) else config['domain_loss_coefficient']  # now, used in only faster rcnn
 
         # Used for efficientdet
         self.resize_transform = A.Compose([
