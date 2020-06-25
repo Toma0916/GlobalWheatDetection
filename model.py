@@ -154,6 +154,7 @@ class Model:
             else:
                 self.model.train()
                 loss_dict, pooled_features = self.model(images, targets)
+                self.dl_calculator.eval()
                 loss_dict['loss_domain'] = self.domain_loss_coefficient * self.dl_calculator(pooled_features, targets)
 
                 self.model.eval()
