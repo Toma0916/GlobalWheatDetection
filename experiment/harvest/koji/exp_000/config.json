@@ -1,10 +1,10 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "harvest/koji/exp_003",
+        "output_dirname": "harvest/koji/exp_000_base",
         "experiment_name": "harvest",
         "seed": 42,
-        "model_save_interval": 10,
+        "model_save_interval": 5,
         "valid_image_save_interval": 2,
         "bbox_filter": {
             "max_bbox_size": 100000,
@@ -29,7 +29,7 @@
     },
     "train": {
         "batch_size": 8,
-        "epochs": 50,
+        "epochs": 100,
         "optimizer": {
             "name": "adam",
             "config": {
@@ -44,11 +44,11 @@
             }
         },
         "scheduler": {
-            "name": "WarmupCosineAnnealing",
+            "name": "Step",
             "config": {
-                "T_max": 50,
-                "eta_min": 1e-7,
-                "warmup_iters": 10
+                "step_size": 10,
+                "gamma": 0.1,
+                "last_epoch": -1
             }
         },
         "augment": {
@@ -75,28 +75,18 @@
                 "width": 1024,
                 "p": 0.5
             },
-            "mosaic": {
-                "p": 0.5
-            },
-            "cutout": {
-                "num_holes": 8,
-                "max_h_size": 64,
-                "max_w_size": 64,
-                "fill_value": 0,
-                "p": 0.5
-            },
             "test_time_augment": false
         }
     },
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.45
+            "min_confidence": 0.2
         },
         "post_processor": {
             "name": "wbf",
             "config": {
-                "threshold": 0.45
+                "threshold": 0.6
             }
         }
     }

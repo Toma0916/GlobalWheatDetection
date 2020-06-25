@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "harvest/koji/exp_003",
+        "output_dirname": "harvest/koji/exp_006",
         "experiment_name": "harvest",
         "seed": 42,
         "model_save_interval": 10,
@@ -76,7 +76,10 @@
                 "p": 0.5
             },
             "mosaic": {
-                "p": 0.5
+                "p": 0.3
+            },
+            "mixup": {
+                "p": 0.3
             },
             "cutout": {
                 "num_holes": 8,

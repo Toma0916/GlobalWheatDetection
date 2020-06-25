@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "harvest/koji/exp_003",
+        "output_dirname": "harvest/koji/exp_008",
         "experiment_name": "harvest",
         "seed": 42,
         "model_save_interval": 10,
@@ -68,21 +68,6 @@
                 "p": 0.5
             },
             "random_brightness": {
-                "p": 0.5
-            },
-            "random_sized_bbox_safe_crop": {
-                "height": 1024,
-                "width": 1024,
-                "p": 0.5
-            },
-            "mosaic": {
-                "p": 0.5
-            },
-            "cutout": {
-                "num_holes": 8,
-                "max_h_size": 64,
-                "max_w_size": 64,
-                "fill_value": 0,
                 "p": 0.5
             },
             "test_time_augment": false

@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "harvest/koji/exp_003",
+        "output_dirname": "harvest/koji/exp_004",
         "experiment_name": "harvest",
         "seed": 42,
         "model_save_interval": 10,
@@ -44,11 +44,10 @@
             }
         },
         "scheduler": {
-            "name": "WarmupCosineAnnealing",
+            "name": "CosineAnnealing",
             "config": {
-                "T_max": 50,
-                "eta_min": 1e-7,
-                "warmup_iters": 10
+                "T_max": 20,
+                "eta_min": 1e-3
             }
         },
         "augment": {
