@@ -1,0 +1,107 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "toma/harvest_exp_006_compare",
+        "experiment_name": "play",
+        "seed": 42,
+        "model_save_interval": 10,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 100000,
+            "min_bbox_size": 100
+        },
+        "train_valid_split": {
+            "name": "source",
+            "config": {
+                "valid_sources": [
+                    "arvalis_2"
+                ]
+            }
+        }
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet50_coco",
+            "class_num": 2,
+            "pretrained": true
+        },
+        "domain_loss_coefficient": 1.0
+    },
+    "train": {
+        "batch_size": 6,
+        "epochs": 50,
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "betas": {
+                    "tuple": {
+                        "b1": 0.5,
+                        "b2": 0.999
+                    }
+                },
+                "eps": 1e-8
+            }
+        },
+        "scheduler": {
+            "name": "WarmupCosineAnnealing",
+            "config": {
+                "T_max": 50,
+                "eta_min": 1e-7,
+                "warmup_iters": 10
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5
+            },
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 0.5
+            },
+            "mosaic": {
+                "p": 0.3
+            },
+            "mixup": {
+                "p": 0.3
+            },
+            "cutout": {
+                "num_holes": 8,
+                "max_h_size": 64,
+                "max_w_size": 64,
+                "fill_value": 0,
+                "p": 0.5
+            },
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.45
+        },
+        "post_processor": {
+            "name": "wbf",
+            "config": {
+                "threshold": 0.45
+            }
+        }
+    }
+}
