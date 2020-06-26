@@ -1,7 +1,7 @@
-artifact_uri: ./mlruns/7/65ff01d002df4e4ca3a6d7cda3bcbf87/artifacts
+artifact_uri: ./mlruns/8/65ff01d002df4e4ca3a6d7cda3bcbf87/artifacts
 end_time: 1592938706116
 entry_point_name: ''
-experiment_id: '7'
+experiment_id: '8'
 lifecycle_stage: active
 name: ''
 run_id: 65ff01d002df4e4ca3a6d7cda3bcbf87
