@@ -65,7 +65,7 @@
         },
         "augment": {
             "cutmix": {
-                "p": 0.5,
+                "p": 1.0,
                 "mix": true
             },
             "test_time_augment": false
