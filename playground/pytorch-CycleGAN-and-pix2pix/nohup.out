@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/home/toma/anaconda3/envs/cycleGAN/lib/python3.8/runpy.py", line 194, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/toma/anaconda3/envs/cycleGAN/lib/python3.8/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/home/toma/anaconda3/envs/cycleGAN/lib/python3.8/site-packages/visdom/server.py", line 20, in <module>
+    import jsonpatch
+ModuleNotFoundError: No module named 'jsonpatch'

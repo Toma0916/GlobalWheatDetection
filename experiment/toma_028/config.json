@@ -1,0 +1,120 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "toma/play9",
+        "experiment_name": "play",
+        "seed": 42,
+        "model_save_interval": 20,
+        "valid_image_save_interval": 2,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 10
+        },
+        "kfold": -1,
+        "train_valid_split": {
+            "name": "source",
+            "config": {
+                "valid_sources": [
+                    "arvalis_2"
+                ]
+            }
+        }
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 9,
+            "class_num": 2,
+            "pretrained": true
+        },
+        "domain_loss_coefficient": 1.0
+    },
+    "train": {
+        "batch_size": 6,
+        "epochs": 101,
+        "random_annotation": {
+            "drop": {
+                "p": 0.0
+            },
+            "vibration": {
+                "max_ratio": 0.1
+            }
+        },
+        "optimizer": {
+            "name": "adam",
+            "config": {
+                "lr": 0.0001,
+                "betas": {
+                    "tuple": {
+                        "b1": 0.5,
+                        "b2": 0.999
+                    }
+                },
+                "eps": 1e-8
+            }
+        },
+        "scheduler": {
+            "name": "WarmupCosineAnnealing",
+            "config": {
+                "T_max": 50,
+                "eta_min": 1e-7,
+                "warmup_iters": 10
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 1.0
+            },
+            "random_contrast": {
+                "p": 1.0
+            },
+            "random_brightness": {
+                "p": 1.0
+            },
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 1.0
+            },
+            "blur": {
+                "p": 1.0
+            },
+            "motion_blur": {
+                "p": 1.0
+            },
+            "gauss_noise": {
+                "p": 1.0
+            },
+            "cutout": {
+                "p": 1.0,
+                "num_holes": 12,
+                "max_h_size": 90,
+                "max_w_size": 90
+            },
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.45
+        },
+        "post_processor": {
+            "name": "wbf",
+            "config": {
+                "threshold": 0.45
+            }
+        }
+    }
+}

@@ -123,6 +123,7 @@ class Model:
         self.is_train = True
         self.device = None
         self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
+        self.domain_loss_coefficient = 0.0 if ('domain_loss_coefficient' not in config) else config['domain_loss_coefficient']  # now, used in only faster rcnn
 
         # Used for efficientdet
         self.resize_transform = A.Compose([
@@ -138,6 +139,9 @@ class Model:
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
         )
 
+        self.gradient_reversal_layer = GradientReversal(scale=self.domain_loss_coefficient)
+        self.dl_calculator = DomainLossCalculator()
+
 
     def __call__(self, images, targets=None):
         images, targets = self._resize(images, targets)
@@ -145,11 +149,14 @@ class Model:
             images = list(image.float().to(self.device) for image in images)
             targets = [{k: v.to(self.device) for k, v in t.items()} for t in targets]
             if self.is_train:
-                loss = self.model(images, targets)
+                loss, pooled_features = self.model(images, targets)
+                loss['loss_domain'] = self.dl_calculator(self.gradient_reversal_layer(pooled_features), targets)
                 return loss
             else:
                 self.model.train()
-                loss_dict = self.model(images, targets)
+                loss_dict, pooled_features = self.model(images, targets)
+                self.dl_calculator.eval()
+                loss_dict['loss_domain'] = self.dl_calculator(pooled_features, targets)
 
                 self.model.eval()
                 preds = self.model(images, targets)
@@ -175,15 +182,18 @@ class Model:
 
     def to(self, device):
         self.model.to(device)
+        self.dl_calculator.to(device)
         self.device = device
         return self
 
     def eval(self):
         self.model.eval()
+        self.dl_calculator.eval()
         self.is_train = False
 
     def train(self):
         self.model.train()
+        self.dl_calculator.train()
         self.is_train = True
 
     def parameters(self):
@@ -249,3 +259,78 @@ class Model:
             outputs_resized[i] = output
         images_resized = [sample['image'] for sample in samples]
         return images_resized, outputs_resized
+
+
+
+class DomainLossCalculator(nn.Module):
+    """
+    Implementaion of Idea of DANN
+    predict source domain of image by using top feature of backbone
+    """
+
+    sources_label_map = {
+            'usask_1': 0,
+            'arvalis_1': 1,
+            'inrae_1': 2,
+            'ethz_1': 3,
+            'arvalis_3': 4,
+            'rres_1': 5,
+            'arvalis_2': 6
+    }
+    train_domain_num = len(sources_label_map.keys())
+
+    def __init__(self):
+        
+        super(DomainLossCalculator, self).__init__()
+        
+        self.domain_classifier = nn.Sequential()
+        self.domain_classifier.add_module('d_fc1', nn.Linear(256, 128))  # [warn]: `256` maybe give an error when using non default model
+        self.domain_classifier.add_module('d_bn1', nn.BatchNorm1d(128))
+        self.domain_classifier.add_module('d_relu1', nn.ReLU(True))
+        self.domain_classifier.add_module('d_fc2', nn.Linear(128, self.train_domain_num))
+
+
+    def forward(self, features, targets):
+        domain_output = self.domain_classifier(self.spacial_average_pooling_2d(features))    
+        source_labels = torch.cat([target['source'] for target in targets])
+        loss = nn.CrossEntropyLoss()(domain_output, source_labels)
+        return loss
+    
+
+    def spacial_average_pooling_2d(self, features):
+        """
+        simple average pooling 
+        """
+        features = torch.mean(features, axis=2)
+        features = torch.mean(features, axis=2)
+        return features
+
+
+class GradientReversalFunction(torch.autograd.Function):
+    """
+    https://cyberagent.ai/blog/research/11863/
+    """
+    
+    @staticmethod
+    def forward(ctx, input_forward, scale):
+        ctx.save_for_backward(scale)
+        return input_forward
+ 
+    @staticmethod
+    def backward(ctx, grad_backward):
+        scale, = ctx.saved_tensors
+        return scale * -grad_backward, None
+
+
+class GradientReversal(nn.Module):
+    """
+    https://cyberagent.ai/blog/research/11863/
+    """
+
+    def __init__(self, scale: float):
+        super(GradientReversal, self).__init__()
+        self.scale = torch.tensor(scale)
+ 
+    def forward(self, x):
+        return GradientReversalFunction.apply(x, self.scale)
+

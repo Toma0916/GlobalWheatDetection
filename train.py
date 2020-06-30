@@ -103,6 +103,8 @@ def train_epoch(model, train_data_loader, logger, optimizer):
     model.train()
     if logger is not None: logger.start_train_epoch()
     for images, targets, image_ids in tqdm.tqdm(train_data_loader):
+        if len(images) == 1:  # for batch normalization in domain predicter
+            break
         # なぜか model(images, targets)を実行するとtargets内のbounding boxの値が変わるため値を事前に退避...
         targets_copied = copy.deepcopy(targets)
         target_boxes = [target['boxes'].detach().cpu().numpy().astype(np.int32) for target in targets_copied]
