@@ -20,9 +20,9 @@ We implemented pipeline for object detecion by using pytorch. You can run traini
 In our pipeline, you can use bellow with friendly setting scheme and check result with TensorBoard.
 
 - model
-  -  Faster RCNN
-  -  EfficientDet (based on https://github.com/rwightman/efficientdet-pytorch）
-  -
+  - Faster RCNN
+  - EfficientDet (based on https://github.com/rwightman/efficientdet-pytorch）
+  - YOLOv5 (based on https://github.com/ultralytics/yolov5)
  
 - optimizer
   - Adam
@@ -108,3 +108,9 @@ wget https://github.com/rwightman/efficientdet-pytorch/releases/download/v0.1/tf
 ```
 In order to use this, please specify the path to this weight in config.json. Example is given in ./sample_json/config_effdet.json.
 
+### Usage for YOLOv5
+This is currently under construction.  
+In order to use this, please add `--recursive` when git clone like below.
+```
+git clone --recursive git@github.com:Toma0916/GlobalWheatDetection.git
+```
