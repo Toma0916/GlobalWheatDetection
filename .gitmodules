@@ -1,0 +1,3 @@
+[submodule "utils/yolov5"]
+	path = utils/yolov5
+	url = git@github.com:kminoda/yolov5.git

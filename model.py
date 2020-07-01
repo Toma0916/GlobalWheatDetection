@@ -54,6 +54,12 @@ from albumentations.core.transforms_interface import DualTransform
 from utils.effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from utils.effdet.efficientdet import HeadNet
 
+# --- YoloV5 ---
+from utils.yolov5.models.yolo import Model as Model_yolov5
+# from utils.yolov5.utils import google_utils
+# from utils.yolov5.dataset.utils.datasets import *
+# from utils.yolov5.utils.utils import *
+
 from utils.functions import xywh2xyxy
 
 def efficientdet_model(image_size, pretrained_path=None, class_num=1):
@@ -109,13 +115,18 @@ def fasterrcnn_model(backbone, class_num=2, pool_layers_num=4, pooled_size=7, pr
         backbone = resnet_fpn_backbone(backbone, pretrained=pretrained)
         model = FasterRCNN(backbone, num_classes=class_num, rpn_anchor_generator=anchor_generator, box_roi_pool=roi_pooler)
 
-    return model 
+    return model
+
+def yolov5_model(model_config_path):
+    model = Model_yolov5(model_config_path)
+    return model
 
 class Model:
     def __init__(self, config):
         model_list = {
             'faster_rcnn': fasterrcnn_model,
-            'efficient_det': efficientdet_model
+            'efficient_det': efficientdet_model,
+            'yolov5': yolov5_model
         }
         assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
         self.model_name = config['name']
@@ -144,6 +155,10 @@ class Model:
 
 
     def __call__(self, images, targets=None):
+        """
+        target bboxes are scripted with PASCAL_VOC format? (xyxy)
+        pred bboxes are should also be in this format.
+        """
         images, targets = self._resize(images, targets)
         if self.model_name == 'faster_rcnn':
             images = list(image.float().to(self.device) for image in images)
@@ -178,6 +193,15 @@ class Model:
                 
                 images, preds = self._resize_back(images, preds)
                 preds = [{k: v.cpu().detach() for k, v in pred.items()} for pred in preds]
+                return preds, {'loss': loss}
+
+        elif self.model_name = 'yolov5':
+            # targets = format_bboxes_for_yolov5(targets)
+            preds = model(imgs)
+            loss, loss_items = compute_loss(pred, targets.to(device), model)
+            if self.is_train:
+                return {'loss': loss}
+            else:
                 return preds, {'loss': loss}
 
     def to(self, device):
