@@ -42,7 +42,10 @@
             ],
             "config": {}
         },
-        "kfold": [-1, "kfold"]
+        "kfold": [
+            -1,
+            "kfold"
+        ]
     },
     "model": {
         "prefix": "md",
@@ -173,6 +176,10 @@
             "mixup": {
                 "p": 0.0
             },
+            "super_parallel": [
+                false,
+                "parallel"
+            ],
             "test_time_augment": [
                 false,
                 "tta"
