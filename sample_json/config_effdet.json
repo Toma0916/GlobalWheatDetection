@@ -1,7 +1,7 @@
 {
-    "debug": false,
+    "debug": true,
     "general": {
-        "output_dirname": "sample_effdet",
+        "output_dirname": "sample_effdet2",
         "experiment_name": "sample",
         "seed": 99,
         "model_save_interval": 10,
@@ -20,7 +20,7 @@
     },
     "train": {
         "batch_size": 2,
-        "epochs": 50,
+        "epochs": 100,
         "random_annotation": {
             "drop": {
                 "p": 0.0
@@ -56,7 +56,7 @@
     "valid": {
         "apply_bbox_filter": true,
         "confidence_filter": {
-            "min_confidence": 0.2
+            "min_confidence": 0.5
         },
         "post_processor": {
             "name": "wbf",
