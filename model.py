@@ -175,7 +175,6 @@ class Model:
             else:
                 outputs, (loss, _, _) = self.model(images, boxes, labels)
                 preds = self._preds_from_effdet_output(outputs)
-                
                 images, preds = self._resize_back(images, preds)
                 preds = [{k: v.cpu().detach() for k, v in pred.items()} for pred in preds]
                 return preds, {'loss': loss}
@@ -214,9 +213,10 @@ class Model:
                 'labels': outputs[i, :, 5],
                 'scores': outputs[i, :, 4]
             })
-            pred['labels'] = pred['labels'][pred['boxes'].sum(axis=1)>0]
-            pred['scores'] = pred['scores'][pred['boxes'].sum(axis=1)>0]
-            pred['boxes'] = pred['boxes'][pred['boxes'].sum(axis=1)>0]
+            valid_positions = ((pred['boxes'][:, 2] - pred['boxes'][:, 0]).detach().cpu().numpy() > 1) * ((pred['boxes'][:, 3] - pred['boxes'][:, 1]).detach().cpu().numpy() > 1)
+            pred['labels'] = pred['labels'][(pred['boxes'].sum(axis=1)>0).detach().cpu().numpy() * valid_positions]
+            pred['scores'] = pred['scores'][(pred['boxes'].sum(axis=1)>0).detach().cpu().numpy() * valid_positions]
+            pred['boxes'] = pred['boxes'][(pred['boxes'].sum(axis=1)>0).detach().cpu().numpy() * valid_positions]
             preds.append(pred)
         return preds
 
@@ -241,14 +241,14 @@ class Model:
         return images_resized, targets_resized
 
     def _resize_back(self, images, outputs):
-        if images[0].shape[1:] == (self.image_size, self.image_size):
+        if images[0].shape[1:] == (1024, 1024):
             return images, outputs
 
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
             'bboxes': output['boxes'],
             'labels': output['labels']
-        } for image, output in zip(images, outputs)]
+        } for image, output in zip(images, outputs)]        
         samples = [self.resize_back_transform (**sample) for sample in samples]
         outputs_resized = outputs
         for i, (output, sample) in enumerate(zip(outputs, samples)):
