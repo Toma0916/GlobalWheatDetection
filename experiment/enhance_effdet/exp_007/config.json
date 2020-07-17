@@ -1,0 +1,106 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "enhance_effdet/exp_007",
+        "experiment_name": "enhance_effdet",
+        "seed": 99,
+        "model_save_interval": 10,
+        "valid_image_save_interval": 1,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        }
+    },
+    "model": {
+        "name": "efficient_det",
+        "config": {
+            "pretrained_path": "./weights/effdet/efficientdet_d5-ef44aea8.pth",
+            "image_size": 512
+        }
+    },
+    "train": {
+        "batch_size": 4,
+        "epochs": 100,
+        "random_annotation": {
+            "drop": {
+                "p": 0.0
+            },
+            "vibration": {
+                "max_ratio": 0.0
+            }
+        },
+        "optimizer": {
+            "name": "adamw",
+            "config": {
+                "lr": 0.0002
+            }
+        },
+        "scheduler": {
+            "name": "ReduceLROnPlateau",
+            "config": {
+                "mode": "min",
+                "factor": 0.5,
+                "patience": 1,
+                "verbose": false,
+                "threshold": 0.0001,
+                "threshold_mode": "abs",
+                "cooldown": 0,
+                "min_lr": 1e-8,
+                "eps": 1e-08
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "motion_blur": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.8
+            },
+            "random_brightness": {
+                "p": 0.8
+            },
+            "blur": {
+                "p": 0.5
+            },
+            "gauss_noise": {
+                "p": 0.5
+            },
+            "cutmix": {
+                "p": 1.5,
+                "mix": 1
+            },
+            "mosaic": {
+                "p": 0.75
+            },
+            "mixup": {
+                "p": 0.75
+            },
+            "super_parallel": true,
+            "test_time_augment": false
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.5
+        },
+        "post_processor": {
+            "name": "wbf",
+            "config": {
+                "threshold": 0.6
+            }
+        }
+    }
+}
