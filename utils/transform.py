@@ -166,7 +166,7 @@ def mosaic(image, target, image_id, dataset, p):
 
 
 
-def cutmix(image, target, image_id, dataset, p, mix=False, alpha=0.5, alpha2=2.0, keep_threshold=0.5):
+def cutmix(image, target, image_id, dataset, p, mix=0, alpha=0.5, alpha2=2.0, keep_threshold=0.5):
 
     if p < np.random.rand():
         return image, target
@@ -182,8 +182,19 @@ def cutmix(image, target, image_id, dataset, p, mix=False, alpha=0.5, alpha2=2.0
     cut_box = np.array([bbx1, bby1, bbx2, bby2])
     
     source = dataset.get_example(np.random.choice(np.arange(len(dataset.image_ids))))
+
+    if mix == 0:
+        mix_flag = False
+    elif mix == 1:
+        if random.random() < 0.5:
+            mix_flag = True
+        else:
+            mix_flag = False
+    else:
+        mix_flag = True
+
     
-    if mix:
+    if mix_flag:
         image[bby1:bby2, bbx1:bbx2] = image[bby1:bby2, bbx1:bbx2] * l2 + source[0][bby1:bby2, bbx1:bbx2] * (1 - l2)
         src_boxes = source[1]['boxes']
         src_keep_idx = np.where(calc_box_overlap(src_boxes, cut_box) >(1.0 - keep_threshold))[0]
@@ -358,6 +369,7 @@ class Transform:
         if is_train or config['test_time_augment']:
 
             # mix and cut
+            self.super_parallel = config['super_parallel'] if ('super_parallel' in config) else False
             self.mosaic = config['mosaic'] if ('mosaic' in config) else {'p': 0.0}
             self.cutmix = config['cutmix'] if ('cutmix' in config) else {'p': 0.0}
             self.mixup = config['mixup'] if ('mixup' in config) else {'p': 0.0}
@@ -398,6 +410,7 @@ class Transform:
             
 
         else:
+            self.super_parallel = False
             self.mosaic = {'p': 0.0}
             self.cutmix = {'p': 0.0}
             self.cutout = {'p': 0.0}
@@ -428,10 +441,24 @@ class Transform:
 
         image, target, image_id = example
         
-        # mosaic, cutmix, mixup            
-        image, target = mosaic(image, target, image_id, dataset, **self.mosaic)
-        image, target = cutmix(image, target, image_id, dataset, **self.cutmix)
-        image, target = mixup(image, target, image_id, dataset, **self.mixup)
+        # mosaic, cutmix, mixup   
+        if self.super_parallel:
+            ps = np.array([self.mosaic['p'], self.cutmix['p'], self.mixup['p']])
+            ps = ps / 3.
+            r = random.random()
+            if r < np.sum(ps[0:1]):
+                image, target = mosaic(image, target, image_id, dataset, **self.mosaic)
+            elif r < np.sum(ps[0:2]):
+                image, target = cutmix(image, target, image_id, dataset, **self.cutmix)
+            elif r < np.sum(ps[0:3]):
+                image, target = mixup(image, target, image_id, dataset, **self.mixup)
+            else:
+                pass
+
+        else:        
+            image, target = mosaic(image, target, image_id, dataset, **self.mosaic)
+            image, target = cutmix(image, target, image_id, dataset, **self.cutmix)
+            image, target = mixup(image, target, image_id, dataset, **self.mixup)
 
         # for albumentation transforms
         sample = {

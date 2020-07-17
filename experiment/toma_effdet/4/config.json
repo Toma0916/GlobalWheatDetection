@@ -1,8 +1,8 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
-        "output_dirname": "sample_effdet2",
-        "experiment_name": "sample",
+        "output_dirname": "toma_effdet/parallel",
+        "experiment_name": "toma_effdet",
         "seed": 99,
         "model_save_interval": 10,
         "valid_image_save_interval": 3,
@@ -50,6 +50,49 @@
             }
         },
         "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.5
+            },
+            "random_contrast": {
+                "p": 0.5
+            },
+            "random_brightness": {
+                "p": 0.5
+            },
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 1.0
+            },
+            "blur": {
+                "p": 0.5
+            },
+            "motion_blur": {
+                "p": 0.5
+            },
+            "gauss_noise": {
+                "p": 0.5
+            },
+            "cutmix": {
+                "p": 1.5,
+                "mix": 1
+            },
+            "mosaic": {
+                "p": 0.75
+            },
+            "mixup": {
+                "p": 0.75
+            },
+            "super_parallel": true,
             "test_time_augment": false
         }
     },
