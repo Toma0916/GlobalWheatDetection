@@ -1,21 +1,20 @@
 {
     "debug": false,
     "model_paths": [
-        "manhattan/exp_9",
-        "manhattan/exp_11"
+        "toma_effdet/mosaic"
     ],
     "predict_normalization": {
-        "apply": true,
+        "apply": false,
         "subtraction": 0.005
     },
     "pseudo_label": {
-        "apply": true,
+        "apply": false,
         "detection_threshold": 0.5,
         "epochs": 5
     },
     "optimize": {
         "nms": {
-            "apply": true,
+            "apply": false,
             "n_calls": 50
         },
         "soft_nms": {
@@ -23,7 +22,7 @@
             "n_calls": 50
         },
         "wbf": {
-            "apply": false,
+            "apply": true,
             "n_calls": 50
         }
     },
