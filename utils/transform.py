@@ -105,16 +105,13 @@ def tile4(image_list, target_list, image_id_list):
             boxes[:, 2] = w * (x[:, 0] + x[:, 2] / 2) + padw
             boxes[:, 3] = h * (x[:, 1] + x[:, 3] / 2) + padh
         boxes4.append(boxes)
-
-        
-    
+            
     # Concat/clip labels
     if len(boxes4):
         boxes4 = np.concatenate(boxes4, 0)
         boxes4 = np.clip(boxes4, 0, 2 * s) 
         # boxes4 = np.array([box/2. for box in boxes4 if ((box[0]+1 < box[2]) and (box[1]+1 < box[3]))])  # resize and remove outliers
         # img4 = cv2.resize(img4, (s, s), interpolation=cv2.INTER_LINEAR)  # resize image by `INTER_LINEAR`
-        
         labels4 = np.hstack((np.zeros([boxes4.shape[0], 1]), boxes4)) # really?
         img4, labels4 = random_affine(
             img4, labels4, 
@@ -129,6 +126,7 @@ def tile4(image_list, target_list, image_id_list):
     else:
         # return original set if the number of bounding boxese after mosaic process is zero
         return image_list[0], target_list[0], image_id_list[0]
+
 
 def random_affine(img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, border=0):
     # torchvision.transforms.RandomAffine(degrees=(-10, 10), translate=(.1, .1), scale=(.9, 1.1), shear=(-10, 10))
@@ -172,15 +170,6 @@ def random_affine(img, targets=(), degrees=10, translate=.1, scale=.1, shear=10,
         x = xy[:, [0, 2, 4, 6]]
         y = xy[:, [1, 3, 5, 7]]
         xy = np.concatenate((x.min(1), y.min(1), x.max(1), y.max(1))).reshape(4, n).T
-
-        # # apply angle-based reduction of bounding boxes
-        # radians = a * math.pi / 180
-        # reduction = max(abs(math.sin(radians)), abs(math.cos(radians))) ** 0.5
-        # x = (xy[:, 2] + xy[:, 0]) / 2
-        # y = (xy[:, 3] + xy[:, 1]) / 2
-        # w = (xy[:, 2] - xy[:, 0]) * reduction
-        # h = (xy[:, 3] - xy[:, 1]) * reduction
-        # xy = np.concatenate((x - w / 2, y - h / 2, x + w / 2, y + h / 2)).reshape(4, n).T
 
         # reject warped points outside of image
         xy[:, [0, 2]] = xy[:, [0, 2]].clip(0, width)
