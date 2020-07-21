@@ -1,0 +1,166 @@
+{
+    "debug": false,
+    "general": {
+        "output_dirname": "toma_faster_rcnn_dann/mosaic_non_dann",
+        "experiment_name": "toma_faster_rcnn_dann",
+        "seed": 99,
+        "model_save_interval": 10,
+        "valid_image_save_interval": 3,
+        "bbox_filter": {
+            "max_bbox_size": 160000,
+            "min_bbox_size": 90
+        },
+        "train_valid_split": {
+            "name": "source",
+            "config": {
+                "valid_sources": [
+                    "ethz_1",
+                    "arvalis_2"
+                ]
+            }
+        },
+        "prefix": "gn",
+        "kfold": -1
+    },
+    "model": {
+        "name": "faster_rcnn",
+        "config": {
+            "backbone": "resnet50_coco",
+            "pool_layers_num": 4,
+            "pooled_size": 9,
+            "class_num": 2,
+            "pretrained": true
+        },
+        "domain_loss_coefficient": 0.0,
+        "prefix": "md"
+    },
+    "train": {
+        "batch_size": 2,
+        "epochs": 150,
+        "random_annotation": {
+            "drop": {
+                "p": 0.0
+            },
+            "vibration": {
+                "max_ratio": 0.0
+            }
+        },
+        "optimizer": {
+            "name": "sgd",
+            "config": {
+                "lr": 0.01
+            }
+        },
+        "scheduler": {
+            "name": "ReduceLROnPlateau",
+            "config": {
+                "mode": "min",
+                "factor": 0.5,
+                "patience": 5,
+                "verbose": false,
+                "threshold": 0.0001,
+                "threshold_mode": "abs",
+                "cooldown": 0,
+                "min_lr": 1e-08,
+                "eps": 1e-08
+            }
+        },
+        "augment": {
+            "horizontal_flip": {
+                "p": 0.5
+            },
+            "vertical_flip": {
+                "p": 0.5
+            },
+            "random_rotate_90": {
+                "p": 0.5
+            },
+            "hsv": {
+                "p": 0.0
+            },
+            "random_contrast": {
+                "p": 0.1
+            },
+            "random_brightness": {
+                "p": 0.1
+            },
+            "random_sized_bbox_safe_crop": {
+                "height": 1024,
+                "width": 1024,
+                "p": 0.25
+            },
+            "blur": {
+                "p": 0.2
+            },
+            "motion_blur": {
+                "p": 0.2
+            },
+            "gauss_noise": {
+                "p": 0.0
+            },
+            "mosaic": {
+                "p": 1.0
+            },
+            "super_parallel": false,
+            "test_time_augment": false,
+            "prefix": "ag",
+            "median_blur": {
+                "p": 0.0
+            },
+            "gaussian_blur": {
+                "p": 0.0
+            },
+            "optical_distortion": {
+                "p": 0.0
+            },
+            "grid_distortion": {
+                "p": 0.0
+            },
+            "elastic_transform": {
+                "p": 0.0
+            },
+            "clahe": {
+                "p": 0.0
+            },
+            "channel_shuffle": {
+                "p": 0.0
+            },
+            "random_gamma": {
+                "p": 0.0
+            },
+            "rgb_shift": {
+                "p": 0.0
+            },
+            "cutout": {
+                "p": 0.0
+            },
+            "custom_cutout": {
+                "p": 0.0
+            },
+            "cutmix": {
+                "p": 0.0
+            },
+            "mixup": {
+                "p": 0.0
+            }
+        },
+        "prefix": "tr",
+        "sampler": {
+            "name": "",
+            "config": {}
+        }
+    },
+    "valid": {
+        "apply_bbox_filter": true,
+        "confidence_filter": {
+            "min_confidence": 0.6
+        },
+        "post_processor": {
+            "name": "wbf",
+            "config": {
+                "threshold": 0.6
+            }
+        },
+        "prefix": "vl"
+    }
+}

@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "toma_faster_rcnn_dann/mosaic_cutmix",
+        "output_dirname": "toma_faster_rcnn_dann/mosaic_cutmix_non_dann_adam",
         "experiment_name": "toma_faster_rcnn_dann",
         "seed": 99,
         "model_save_interval": 10,
@@ -43,9 +43,16 @@
             }
         },
         "optimizer": {
-            "name": "sgd",
+            "name": "adam",
             "config": {
-                "lr": 0.01
+                "lr": 0.0001,
+                "betas": {
+                    "tuple": {
+                        "b1": 0.5,
+                        "b2": 0.999
+                    }
+                },
+                "eps": 1e-8
             }
         },
         "scheduler": {
