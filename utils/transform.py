@@ -122,10 +122,13 @@ def tile4(image_list, target_list, image_id_list):
             border=-s//2
         )
         boxes4 = labels4[:, 1:]
-        return img4, boxes4, joined_image_id
+        if len(boxes4):
+            return img4, boxes4, joined_image_id
+        else:
+            return image_list[0], target_list[0]['boxes'], image_id_list[0]
     else:
         # return original set if the number of bounding boxese after mosaic process is zero
-        return image_list[0], target_list[0], image_id_list[0]
+        return image_list[0], target_list[0]['boxes'], image_id_list[0]
 
 
 def random_affine(img, targets=(), degrees=10, translate=.1, scale=.1, shear=10, border=0):
@@ -199,11 +202,12 @@ def mosaic(image, target, image_id, dataset, p):
     source_image_list = [image for _ in range(4 - additional_image)] 
     source_target_list = [target for _ in range(4 - additional_image)] 
     source_image_id_list = [image_id for _ in range(4 - additional_image)] 
+
     for source in mosaic_image_sources:
         source_image_list.append(source[0])
         source_target_list.append(source[1])
         source_image_id_list.append(source[2])
-    
+
     # shulle source
     image_list = []
     target_list = []
