@@ -167,8 +167,16 @@ class Model:
         elif self.model_name == 'efficient_det':
             # resize images and boxes into self.image_size
             images = torch.stack(images).to(self.device).float()
-            boxes = [target['boxes'][:, [1, 0, 3, 2]].to(self.device).float() for target in targets]
-            labels = [target['labels'].to(self.device).float() for target in targets]
+            boxes, labels = [], []
+            for target in targets:
+                # boxes.append(torch.tensor([[0, 0, 0, 0]]).to(self.device).float())
+                # labels.append(torch.tensor([1]).to(self.device).float())
+                if len(target['boxes'])==0:
+                    boxes.append(torch.tensor([[0, 0, 0, 0]]).to(self.device).float())
+                    labels.append(torch.tensor([1]).to(self.device).float())
+                else:
+                    boxes.append(target['boxes'][:, [1, 0, 3, 2]].to(self.device).float())
+                    labels.append(target['labels'].to(self.device).float())
             if self.is_train:
                 loss, _, _ = self.model(images, boxes, labels)
                 return {'loss': loss}
@@ -224,6 +232,16 @@ class Model:
         if images[0].shape[1:] == (self.image_size, self.image_size):
             return images, targets
 
+        ### debug part added 2020/07/22 by koji ###
+        filtered_targets = []
+        for i, target in enumerate(targets):
+            target['labels'] = target['labels'][(target['boxes'][:, 0]!=target['boxes'][:, 2]) & (target['boxes'][:, 1]!=target['boxes'][:, 3])]
+            target['boxes'] = target['boxes'][(target['boxes'][:, 0]!=target['boxes'][:, 2]) & (target['boxes'][:, 1]!=target['boxes'][:, 3]), :]
+            if len(target['boxes'])==0:
+                target['boxes'] = []
+            filtered_targets.append(target)
+        targets = tuple(filtered_targets)
+
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
             'bboxes': target['boxes'],
@@ -238,6 +256,7 @@ class Model:
                 target['boxes'] = torch.tensor([])
             targets_resized[i] = target
         images_resized = [sample['image'] for sample in samples]
+
         return images_resized, targets_resized
 
     def _resize_back(self, images, outputs):
