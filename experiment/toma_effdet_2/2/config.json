@@ -1,7 +1,7 @@
 {
-    "debug": true,
+    "debug": false,
     "general": {
-        "output_dirname": "toma_effdet_2/mosaic_debug",
+        "output_dirname": "toma_effdet_2/mosaic_modified",
         "experiment_name": "toma_effdet_2",
         "seed": 99,
         "model_save_interval": 10,
@@ -83,7 +83,7 @@
                 "p": 0.0
             },
             "mosaic": {
-                "p": 1.0
+                "p": 0.5
             },
             "cutout": {
                 "num_holes": 8,
