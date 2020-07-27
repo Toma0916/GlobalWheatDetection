@@ -538,12 +538,17 @@ class Transform:
         }
 
         albumentation_transforms = A.Compose([
-            A.Cutout(**self.cutout),
-            CustomCutout(**self.custom_cutout),
+            A.RandomSizedCrop(min_max_height=(800, 800), **self.random_sized_bbox_safe_crop),
             A.HorizontalFlip(**self.horizontal_flip),
             A.VerticalFlip(**self.vertical_flip),
             A.RandomRotate90(**self.random_rotate_90),
-            A.RandomSizedBBoxSafeCrop(**self.random_sized_bbox_safe_crop),
+            A.ToGray(p=0.01),
+            A.OneOf([
+                A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit= 0.2, 
+                                     val_shift_limit=0.2, p=0.9),
+                A.RandomBrightnessContrast(brightness_limit=0.2, 
+                                           contrast_limit=0.2, p=0.9),
+            ],p=0.9),
             A.Blur(**self.blur),
             A.MotionBlur(**self.motion_blur),
             A.MedianBlur(**self.median_blur),
@@ -559,12 +564,14 @@ class Transform:
             A.RandomBrightness(**self.random_brightness),
             A.RandomContrast(**self.random_contrast),
             A.GaussNoise(**self.gauss_noise),
+            A.Cutout(**self.cutout),
+            CustomCutout(**self.custom_cutout),
             ToTensorV2(p=1.0)  # convert numpy image to tensor
             ], 
             bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']}
         )
-
         sample = albumentation_transforms(**sample)
+
         image = (sample['image'].type(torch.float32))/255
         if sample['bboxes'] == []:
             # If empty after transform, fill out with these values.
@@ -574,5 +581,8 @@ class Transform:
             target['iscrowd'] = torch.tensor([0], dtype=torch.int64)
         else:
             target['boxes'] = torch.stack(tuple(map(torch.FloatTensor, zip(*sample['bboxes'])))).permute(1, 0)
+            target['labels'] = torch.ones(len(target['boxes']), dtype=torch.int64)
+            target['area'] = torch.tensor(np.array([(box[2] - box[0]) * (box[3] - box[1]) for box in sample['bboxes']]), dtype=torch.float32)
+            target['iscrowd'] = torch.zeros(len(target['boxes']), dtype=torch.int64)
 
         return image, target, image_id

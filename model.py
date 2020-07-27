@@ -120,6 +120,17 @@ class Model:
         assert config['name'] in model_list.keys(), 'Model\'s name is not valid. Available models: %s' % str(list(model_list.keys()))
         self.model_name = config['name']
         self.model = model_list[config['name']](**config['config'])
+
+        # weight decaayのやつ（efficient_detのみ対応
+        if config['name'] == 'efficient_det':
+            param_optimizer = list(self.model.named_parameters())
+            no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
+            self.optimizer_grouped_parameters = [
+                {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.001},
+                {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+            ] 
+
+
         self.is_train = True
         self.device = None
         self.image_size = config['config']['image_size']  if 'image_size' in config['config'].keys() else 1024
@@ -143,7 +154,7 @@ class Model:
         self.dl_calculator = DomainLossCalculator()
 
 
-    def __call__(self, images, targets=None):
+    def __call__(self, images, targets=None):        
         images, targets = self._resize(images, targets)
         if self.model_name == 'faster_rcnn':
             images = list(image.float().to(self.device) for image in images)
@@ -167,8 +178,18 @@ class Model:
         elif self.model_name == 'efficient_det':
             # resize images and boxes into self.image_size
             images = torch.stack(images).to(self.device).float()
-            boxes = [target['boxes'][:, [1, 0, 3, 2]].to(self.device).float() for target in targets]
-            labels = [target['labels'].to(self.device).float() for target in targets]
+            boxes, labels = [], []
+
+            for target in targets:
+                # boxes.append(torch.tensor([[0, 0, 0, 0]]).to(self.device).float())
+                # labels.append(torch.tensor([1]).to(self.device).float())
+                if len(target['boxes'])==0:
+                    boxes.append(torch.tensor([[0, 0, 0, 0]]).to(self.device).float())
+                    labels.append(torch.tensor([1]).to(self.device).float())
+                else:
+                    boxes.append(target['boxes'][:, [1, 0, 3, 2]].to(self.device).float())
+                    labels.append(target['labels'].to(self.device).float())
+
             if self.is_train:
                 loss, _, _ = self.model(images, boxes, labels)
                 return {'loss': loss}
@@ -223,6 +244,15 @@ class Model:
     def _resize(self, images, targets):
         if images[0].shape[1:] == (self.image_size, self.image_size):
             return images, targets
+        ### debug part added 2020/07/22 by koji ###
+        filtered_targets = []
+        for i, target in enumerate(targets):
+            target['labels'] = target['labels'][(target['boxes'][:, 0]!=target['boxes'][:, 2]) & (target['boxes'][:, 1]!=target['boxes'][:, 3])]
+            target['boxes'] = target['boxes'][(target['boxes'][:, 0]!=target['boxes'][:, 2]) & (target['boxes'][:, 1]!=target['boxes'][:, 3]), :]
+            if len(target['boxes'])==0:
+                target['boxes'] = []
+            filtered_targets.append(target)
+        targets = tuple(filtered_targets)
 
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
