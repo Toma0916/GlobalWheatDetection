@@ -254,6 +254,16 @@ class Model:
             filtered_targets.append(target)
         targets = tuple(filtered_targets)
 
+        ### debug part added 2020/07/22 by koji ###
+        filtered_targets = []
+        for i, target in enumerate(targets):
+            target['labels'] = target['labels'][(target['boxes'][:, 0]!=target['boxes'][:, 2]) & (target['boxes'][:, 1]!=target['boxes'][:, 3])]
+            target['boxes'] = target['boxes'][(target['boxes'][:, 0]!=target['boxes'][:, 2]) & (target['boxes'][:, 1]!=target['boxes'][:, 3]), :]
+            if len(target['boxes'])==0:
+                target['boxes'] = []
+            filtered_targets.append(target)
+        targets = tuple(filtered_targets)
+
         samples = [{
             'image': image.permute(1, 2, 0).cpu().numpy(),
             'bboxes': target['boxes'],
@@ -268,6 +278,7 @@ class Model:
                 target['boxes'] = torch.tensor([])
             targets_resized[i] = target
         images_resized = [sample['image'] for sample in samples]
+
         return images_resized, targets_resized
 
     def _resize_back(self, images, outputs):
