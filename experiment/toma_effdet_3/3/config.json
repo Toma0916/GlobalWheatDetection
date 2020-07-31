@@ -1,11 +1,11 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "toma_effdet_2/parallel2_modified",
-        "experiment_name": "toma_effdet_2",
+        "output_dirname": "toma_effdet_3/mixup_modified",
+        "experiment_name": "toma_effdet_3",
         "seed": 99,
-        "model_save_interval": 10,
-        "valid_image_save_interval": 3,
+        "model_save_interval": 5,
+        "valid_image_save_interval": 1,
         "bbox_filter": {
             "max_bbox_size": 160000,
             "min_bbox_size": 2000
@@ -30,23 +30,20 @@
             }
         },
         "optimizer": {
-            "name": "adamw",
+            "name": "asgd",
             "config": {
-                "lr": 0.0002
+                "lr": 0.002,
+                "weight_decay": 0.0001
             }
         },
         "scheduler": {
-            "name": "ReduceLROnPlateau",
+            "name": "WarmupCosineAnnealingRestarts",
             "config": {
-                "mode": "min",
-                "factor": 0.5,
-                "patience": 1,
-                "verbose": false,
-                "threshold": 0.0001,
-                "threshold_mode": "abs",
-                "cooldown": 0,
-                "min_lr": 1e-8,
-                "eps": 1e-08
+                "T_0": 10,
+                "T_mult": 1,
+                "eta_max": 0.008,
+                "T_up": 5,
+                "gamma": 0.1
             }
         },
         "augment": {
@@ -82,15 +79,12 @@
             "gauss_noise": {
                 "p": 0.0
             },
-            "mosaic": {
-                "p": 1.5
-            },
             "cutmix": {
-                "p": 1.0,
+                "p": 0.8,
                 "mix": 0
             },
             "cutout": {
-                "num_holes": 8,
+                "num_holes": 12,
                 "max_h_size": 64,
                 "max_w_size": 64,
                 "fill_value": 0,

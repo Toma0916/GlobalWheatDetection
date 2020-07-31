@@ -1,7 +1,7 @@
 {
     "debug": false,
     "general": {
-        "output_dirname": "toma_effdet_2/cutmix",
+        "output_dirname": "toma_effdet_2/parallel_modified",
         "experiment_name": "toma_effdet_2",
         "seed": 99,
         "model_save_interval": 10,
@@ -57,7 +57,7 @@
                 "p": 0.5
             },
             "random_rotate_90": {
-                "p": 0.5
+                "p": 0.0
             },
             "hsv": {
                 "p": 0.0
@@ -71,7 +71,7 @@
             "random_sized_bbox_safe_crop": {
                 "height": 1024,
                 "width": 1024,
-                "p": 1.0
+                "p": 0.75
             },
             "blur": {
                 "p": 0.1
@@ -82,11 +82,24 @@
             "gauss_noise": {
                 "p": 0.0
             },
-            "cutmix": {
-                "p": 1.0,
-                "mix": 1
+            "mosaic": {
+                "p": 1.5
             },
-            "super_parallel": false,
+            "cutmix": {
+                "p": 0.75,
+                "mix": 0
+            },
+            "mixup": {
+                "p": 0.25
+            },
+            "cutout": {
+                "num_holes": 8,
+                "max_h_size": 64,
+                "max_w_size": 64,
+                "fill_value": 0,
+                "p": 0.5
+            },
+            "super_parallel": true,
             "test_time_augment": false
         }
     },
