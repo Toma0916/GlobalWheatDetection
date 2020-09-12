@@ -2,7 +2,7 @@
 
 # Overview
 
-This repository is for `Global Wheat Detection` that is Kaggle competition for detection of wheat segments in images. (https://www.kaggle.com/c/global-wheat-detection)
+This repository is for `Global Wheat Detection` that is Kaggle competition for detection of wheat segments in images from all over the world. (https://www.kaggle.com/c/global-wheat-detection)
 
 <div align="center">
 <img src="https://user-images.githubusercontent.com/18682053/82140037-b8573d80-9867-11ea-9acb-89bae6fb192e.png" title="OverView1">
@@ -15,20 +15,20 @@ This repository is for `Global Wheat Detection` that is Kaggle competition for d
 
 ## Details
 
-We implemented pipeline for object detecion by using pytorch. You can run training and inference very easily in your machines.
+We implemented a pipeline for object detecion with pytorch. You can run training and inference easily in your machines.
 
-In our pipeline, you can use bellow with friendly setting scheme and check result with TensorBoard.
+In our pipeline, the following parameters are currently available, as well as TensorBoard and mlflow for visualization.
 
-- model
+- Models
   -  Faster RCNN
   -  EfficientDet (based on https://github.com/rwightman/efficientdet-pytorch）
  
-- optimizer
+- Optimizers
   - Adam
   - SGD
   - AdamW
 
-- scheduler
+- Schedulers
   - StepLR
   - MultiStepLR
   - ExponentialLR
@@ -39,7 +39,7 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - PolyLR
   - WarmupCosineAnnealingRestartsLR
   
-- augmentations
+- Augmentations
   - HorizontalFlip (horizontal_flip)
   - VerticalFlip (vertical_flip)
   - Blur (blur)
@@ -61,13 +61,13 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
   - CutMix (cutmix)
   - MixUp (mixup)
 
-- post processing
-  - filtering by confidence score
-  - non maximum supression
-  - soft non maximum supression
-  - weighted boxes fusion
+- Post processing
+  - A filter based on confidence score
+  - NMS (non maximum supression)
+  - Soft-NMS
+  - WBF (weighted boxes fusion)
 
-- other utils
+- Other utils
   - TensorBoard (run `tensorboard --logdir ./output` in root)
   - MLFlow (run `mlflow ui --port 5000` in root)
  
