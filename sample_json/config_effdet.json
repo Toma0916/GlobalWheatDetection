@@ -50,6 +50,17 @@
             }
         },
         "augment": {
+            "cutmix": {
+                "p": 0.75,
+                "mix": 1
+            },
+            "mosaic": {
+                "p": 0.75
+            },
+            "mixup": {
+                "p": 0.75
+            },
+            "super_parallel": true,
             "test_time_augment": false
         }
     },
