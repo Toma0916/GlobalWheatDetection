@@ -22,12 +22,11 @@ In our pipeline, you can use bellow with friendly setting scheme and check resul
 - model
   -  Faster RCNN
   -  EfficientDet (based on https://github.com/rwightman/efficientdet-pytorch）
-  -
  
 - optimizer
   - Adam
   - SGD
-  - 
+  - AdamW
 
 - scheduler
   - StepLR
@@ -93,18 +92,20 @@ pip install -U -r requirements.txt
 
 
 ## Usage
-Make json file about train setting and run hogehoge.sh with json path.
+Specify your training configuration as a .json script, and then run the following command.
+
+```
+$ python train.py YOUR_CONFIG_PATH
+```
 
 You can use Single GPU.
 Multi GPU will be available soon!
 
 ### Usage for EfficientDet
-First of all, this 
-
 This model is from https://github.com/rwightman/efficientdet-pytorch.  
 We used the following command to get the pretrained model (also from the above website)  
 ```
-wget https://github.com/rwightman/efficientdet-pytorch/releases/download/v0.1/tf_efficientdet_d5-ef44aea8.pth
+$ wget https://github.com/rwightman/efficientdet-pytorch/releases/download/v0.1/tf_efficientdet_d5-ef44aea8.pth
 ```
 In order to use this, please specify the path to this weight in config.json. Example is given in ./sample_json/config_effdet.json.
 
