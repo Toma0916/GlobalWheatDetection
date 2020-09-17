@@ -58,7 +58,8 @@ def get_optimizer(config, parameters):
     optimizer_list = {
         'adam': torch.optim.Adam,
         'adamw': torch.optim.AdamW,
-        'sgd': torch.optim.SGD
+        'sgd': torch.optim.SGD,
+        'asgd': torch.optim.ASGD
     }
     
     assert config['name'] in optimizer_list.keys(), 'Optimizer\'s name is not valid. Available optimizes: %s' % str(list(optimizer_list.keys()))

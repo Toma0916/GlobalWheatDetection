@@ -86,7 +86,7 @@ class DatasetMixin(Dataset):
             image = torch.as_tensor(image, dtype=torch.float32)
             target['boxes'] = torch.as_tensor(target['boxes'], dtype=torch.float32)
             example = (image, target, image_id)
-
+            
         return example
 
 

@@ -77,8 +77,12 @@ def exec_train(config, train_data_loader, valid_data_loader, OUTPUT_DIR, fold, t
     # model = torch.nn.DataParallel(model) 
     
     # train setting
-    trainable_params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
+    # effdetのときは例のweight decayのやつを考慮する
+    if config['model']['name'] == 'efficient_det':
+        optimizer = get_optimizer(config['train']['optimizer'], model.optimizer_grouped_parameters)
+    else:
+        trainable_params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = get_optimizer(config['train']['optimizer'], trainable_params)
     scheduler = get_scheduler(config['train']['scheduler'], optimizer)
 
     # log setting
@@ -204,7 +208,6 @@ if __name__ == '__main__':
     if OUTPUT_DIR.name == 'sample' and os.path.exists(OUTPUT_DIR):
         print("'output/sample' is be overwritten.")
         shutil.rmtree(OUTPUT_DIR)
-    
     if os.path.exists(OUTPUT_DIR):        
         print('[WIP]: reload weights. Execute sys.exit().')
         sys.exit()  # [WIP]: reload weights

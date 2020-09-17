@@ -30,7 +30,7 @@
             }
         },
         "optimizer": {
-            "name": "adamw",
+            "name": "",
             "config": {
                 "lr": 0.0002
             }

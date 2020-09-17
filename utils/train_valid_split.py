@@ -3,8 +3,8 @@ from sklearn.model_selection import StratifiedKFold, GroupKFold
 
 def debug_split(dataframe):
     image_ids = dataframe['image_id'].unique()
-    train_data_size = 100
-    valid_data_size = 20
+    train_data_size = 20
+    valid_data_size = 4
     train_ids = image_ids[:train_data_size]
     valid_ids = image_ids[train_data_size:(train_data_size+valid_data_size)]
     return [(train_ids, valid_ids)]
