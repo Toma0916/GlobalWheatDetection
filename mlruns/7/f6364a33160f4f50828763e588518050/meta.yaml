@@ -1,5 +1,5 @@
 artifact_uri: ./mlruns/7/f6364a33160f4f50828763e588518050/artifacts
-end_time: null
+end_time: 1593422177439
 entry_point_name: ''
 experiment_id: '7'
 lifecycle_stage: active
@@ -10,6 +10,6 @@ source_name: ''
 source_type: 4
 source_version: ''
 start_time: 1593299530046
-status: 1
+status: 3
 tags: []
 user_id: toma
